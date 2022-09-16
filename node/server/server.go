@@ -2,6 +2,7 @@ package server
 
 import (
 	"blocksui-node/config"
+	"fmt"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,7 @@ import (
 
 var router *gin.Engine
 
-func Start(conf *config.Config) {
+func Start(c *config.Config) {
 	router := gin.Default()
 	router.Use(cors.Default())
 
@@ -21,5 +22,6 @@ func Start(conf *config.Config) {
 	// GET /assets-worker.js
 	// GET *
 
-	router.Run(conf.Port)
+	fmt.Println(c.Port)
+	router.Run(c.Port)
 }

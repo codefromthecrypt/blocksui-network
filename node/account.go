@@ -2,6 +2,7 @@ package main
 
 import (
 	"blocksui-node/config"
+	"blocksui-node/contracts"
 	"fmt"
 	"math/big"
 	"net"
@@ -29,6 +30,38 @@ func (a *Account) Sender() contract.ContractOption {
 
 func (a *Account) Balance() (*big.Int, error) {
 	return a.Client.Eth().GetBalance(a.Address, ethgo.Latest)
+}
+
+func (a *Account) StakeBalance() (*big.Int, error) {
+	return contracts.StakeBalance(a.Address)
+}
+
+func (a *Account) VerifyStake() bool {
+	cost, err := contracts.StakingCost()
+	if err != nil {
+		fmt.Printf("[contracts]\t%v\n", err)
+		return false
+	}
+
+	balance, err := contracts.StakeBalance(a.Address)
+	if err != nil {
+		fmt.Printf("[contracts]\t%v\n", err)
+		return false
+	}
+
+	return balance.Cmp(cost) != -1
+}
+
+func getIpAddress() (*net.UDPAddr, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	ipAddress := conn.LocalAddr().(*net.UDPAddr)
+
+	return ipAddress, nil
 }
 
 func GenerateAccount(homeDir string) (*Account, error) {
@@ -63,10 +96,16 @@ func GenerateAccount(homeDir string) (*Account, error) {
 	fmt.Println(phrase)
 	fmt.Println("")
 
+	ip, err := getIpAddress()
+	if err != nil {
+		return nil, err
+	}
+
 	wallet := wallet.NewKey(privKey)
 
 	return &Account{
 		Address: wallet.Address(),
+		IP:      []byte(ip.IP),
 		Wallet:  wallet,
 	}, nil
 }
@@ -87,20 +126,17 @@ func LoadAccount(c *config.Config) (*Account, error) {
 		return nil, err
 	}
 
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+	ip, err := getIpAddress()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	ipAddress := conn.LocalAddr().(*net.UDPAddr)
 
 	wallet := wallet.NewKey(privKey)
 
 	return &Account{
 		Address: wallet.Address(),
 		Client:  client,
-		IP:      ipAddress.IP,
+		IP:      []byte(ip.IP),
 		Wallet:  wallet,
 	}, nil
 }

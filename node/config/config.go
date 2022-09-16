@@ -1,6 +1,8 @@
 package config
 
-import "os"
+import (
+	"os"
+)
 
 type Config struct {
 	BlockContractCID   string
@@ -12,18 +14,23 @@ type Config struct {
 	Web3Token          string
 }
 
-func New(
-	env string,
-	homeDir string,
-	port string,
-) *Config {
+func (c *Config) WithPort(port string) *Config {
+	c.Port = port
+	return c
+}
+
+func New(env string) *Config {
+	hd, err := os.UserHomeDir()
+	if err != nil {
+		hd = "/"
+	}
+
 	return &Config{
-		os.Getenv("BLOCK_NFT_CID"),
-		env,
-		homeDir,
-		port,
-		os.Getenv("PROVIDER_URL"),
-		os.Getenv("STAKING_CID"),
-		os.Getenv("WEB3STORAGE_TOKEN"),
+		BlockContractCID:   os.Getenv("BLOCK_NFT_CID"),
+		Env:                env,
+		HomeDir:            hd,
+		ProviderURL:        os.Getenv("PROVIDER_URL"),
+		StakingContractCID: os.Getenv("STAKING_CID"),
+		Web3Token:          os.Getenv("WEB3STORAGE_TOKEN"),
 	}
 }

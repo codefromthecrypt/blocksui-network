@@ -3,6 +3,7 @@ package main
 import (
 	"blocksui-node/config"
 	"blocksui-node/contracts"
+	"blocksui-node/server"
 	"flag"
 	"fmt"
 	"math/big"
@@ -11,8 +12,22 @@ import (
 	"path/filepath"
 )
 
+var (
+	// Main Flags
+	mainFlags = flag.NewFlagSet("main", flag.ContinueOnError)
+	env       = mainFlags.String("e", "production", "-e development")
+
+	// Balance Flags
+	balanceFlags     = flag.NewFlagSet("balance", flag.ExitOnError)
+	showStakeBalance = balanceFlags.Bool("stake", false, "--stake - Show staking balance")
+
+	// Node Flags
+	nodeFlags = flag.NewFlagSet("node", flag.ExitOnError)
+	port      = nodeFlags.String("p", ":80", "-p :8080")
+)
+
 var CMDS = map[string]string{
-	"balance":    "Returns the node's ether balance.",
+	"balance":    "Returns the node's ether balance. Use --stake to get your staking balance.",
 	"init":       "Initialize the CLI.",
 	"node":       "Runs the CRCLS node.",
 	"register":   "Register this node with the network.",
@@ -60,21 +75,8 @@ func ensureInit(homeDir string) {
 }
 
 func main() {
-	hd, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Unable to load the UserHomeDir")
-		os.Exit(1)
-	}
-
-	homeDir := flag.String("h", hd, "-h /User/me")
-	env := flag.String("e", "production", "-e development")
-	port := flag.String("p", ":80", "-p :8080")
-
-	c := config.New(
-		*env,
-		*homeDir,
-		*port,
-	)
+	mainFlags.Parse(os.Args[1:])
+	c := config.New(*env)
 
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -88,6 +90,8 @@ func main() {
 			}
 			fmt.Println("")
 		case "balance":
+			balanceFlags.Parse(os.Args[2:])
+
 			ensureInit(c.HomeDir)
 			account, err := LoadAccount(c)
 			if err != nil {
@@ -99,7 +103,7 @@ func main() {
 
 			var balance *big.Int
 
-			if os.Args[2] == "--stake" {
+			if *showStakeBalance {
 				if err := contracts.LoadContracts(c); err != nil {
 					fmt.Println(err)
 					os.Exit(1)
@@ -130,6 +134,9 @@ func main() {
 		case "node":
 			ensureInit(c.HomeDir)
 
+			nodeFlags.Parse(os.Args[2:])
+			c.WithPort(*port)
+
 			if err := contracts.LoadContracts(c); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -140,10 +147,15 @@ func main() {
 				fmt.Printf("%v\n", err)
 			}
 
+			if ok := account.VerifyStake(); !ok {
+				fmt.Println("Your staking account is too low on funds. Please register again to top up your account.")
+				os.Exit(1)
+			}
+
 			fmt.Printf("Account Loaded: %s\n", account.Address)
 
-			// fmt.Println("Starting the CRCLS Node")
-			// server.Start(c)
+			fmt.Println("Starting the CRCLS Node")
+			server.Start(c)
 		case "register":
 			ensureInit(c.HomeDir)
 
