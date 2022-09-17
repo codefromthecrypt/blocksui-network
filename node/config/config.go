@@ -6,6 +6,7 @@ import (
 
 type Config struct {
 	BlockContractCID   string
+	BlocksCID          string
 	Env                string
 	HomeDir            string
 	Port               string
@@ -27,6 +28,7 @@ func New(env string) *Config {
 
 	return &Config{
 		BlockContractCID:   os.Getenv("BLOCK_NFT_CID"),
+		BlocksCID:          os.Getenv("BLOCKS_CID"),
 		Env:                env,
 		HomeDir:            hd,
 		ProviderURL:        os.Getenv("PROVIDER_URL"),

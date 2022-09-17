@@ -95,7 +95,7 @@ func main() {
 			ensureInit(c.HomeDir)
 			account, err := LoadAccount(c)
 			if err != nil {
-				fmt.Printf("%v\n", err)
+				fmt.Printf("[Load Accounts] %v\n", err)
 				os.Exit(1)
 			}
 
@@ -105,19 +105,19 @@ func main() {
 
 			if *showStakeBalance {
 				if err := contracts.LoadContracts(c); err != nil {
-					fmt.Println(err)
+					fmt.Printf("[Load Contracts] %v\n", err)
 					os.Exit(1)
 				}
 
 				balance, err = contracts.StakeBalance(account.Address)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Printf("[Stake Balances] %v\n", err)
 					os.Exit(1)
 				}
 			} else {
 				balance, err = account.Balance()
 				if err != nil {
-					fmt.Println(err)
+					fmt.Printf("[Account Balance] %v\n", err)
 					os.Exit(1)
 				}
 			}
@@ -138,13 +138,13 @@ func main() {
 			c.WithPort(*port)
 
 			if err := contracts.LoadContracts(c); err != nil {
-				fmt.Println(err)
+				fmt.Printf("[Load Contracts] %v\n", err)
 				os.Exit(1)
 			}
 
 			account, err := LoadAccount(c)
 			if err != nil {
-				fmt.Printf("%v\n", err)
+				fmt.Printf("[Load Accounts] %v\n", err)
 			}
 
 			if ok := account.VerifyStake(); !ok {

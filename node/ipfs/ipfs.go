@@ -5,8 +5,12 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"time"
 
+	goCid "github.com/ipfs/go-cid"
 	sh "github.com/ipfs/go-ipfs-api"
+	w3s "github.com/web3-storage/go-w3s-client"
+	w3sHttp "github.com/web3-storage/go-w3s-client/http"
 )
 
 var shell *sh.Shell
@@ -75,4 +79,27 @@ func Connect() (*sh.Shell, error) {
 	}
 
 	return shell, nil
+}
+
+func Web3Get(cid string, web3Token string) (*w3sHttp.Web3Response, error) {
+	ipfs, err := w3s.NewClient(w3s.WithToken(web3Token))
+	if err != nil {
+		return nil, err
+	}
+
+	itemCid, err := goCid.Parse(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*60))
+
+	res, err := ipfs.Get(ctx, itemCid)
+	if err != nil {
+		cancel()
+		fmt.Println("Web3Get Get error")
+		return nil, err
+	}
+
+	return res, nil
 }

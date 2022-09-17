@@ -2,25 +2,22 @@ package contracts
 
 import (
 	"blocksui-node/config"
-	"context"
+	"blocksui-node/ipfs"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
-	"time"
 
-	"github.com/ipfs/go-cid"
 	"github.com/umbracle/ethgo"
 	"github.com/umbracle/ethgo/abi"
 	"github.com/umbracle/ethgo/contract"
 	"github.com/umbracle/ethgo/jsonrpc"
-	ws3 "github.com/web3-storage/go-w3s-client"
 )
 
 type ContractConfig struct {
 	Address      ethgo.Address `json:"address"`
-	ContractName string        `json:"contractName"`
-	Abi          *abi.ABI      `json:"abi"`
+	Abi          *abi.ABI
+	ContractName string `json:"contractName"`
 }
 
 type Contract struct {
@@ -56,21 +53,9 @@ func LoadContracts(c *config.Config) error {
 		client = newClient
 	}
 
-	ipfs, err := ws3.NewClient(ws3.WithToken(c.Web3Token))
+	res, err := ipfs.Web3Get(c.StakingContractCID, c.Web3Token)
 	if err != nil {
-		return err
-	}
-
-	abiCid, err := cid.Parse(c.StakingContractCID)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*80))
-	defer cancel()
-
-	res, err := ipfs.Get(ctx, abiCid)
-	if err != nil {
+		fmt.Println("Web3 Error")
 		return err
 	}
 
