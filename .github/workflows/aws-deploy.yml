@@ -1,0 +1,40 @@
+name: Deploy Server Node to ECS
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - node/**
+
+jobs:
+  SetUp:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.vars.outputs.sha_short }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Short SHA
+        id: vars
+        run: echo ::set-output name=sha_short::$(git rev-parse --short=8 ${{ github.sha }})
+  ServerDeploy:
+    runs-on: ubuntu-latest
+    needs: SetUp
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ca-central-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - name: Build & Push Image to ECR
+        env:
+          REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com
+          REPO: blocksui-server-node
+          IMAGE_TAG: ${{ needs.SetUp.outputs.short_sha }}
+        run: |
+          docker build -qt $REGISTRY/$REPO:$IMAGE_TAG -f ./node/docker/aws.Dockerfile ./node
+          docker push $REGISTRY/$REPO:$IMAGE_TAG

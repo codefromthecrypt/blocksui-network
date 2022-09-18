@@ -6,11 +6,12 @@ import (
 
 type Config struct {
 	BlockContractCID   string
-	BlocksCID          string
 	Env                string
 	HomeDir            string
 	Port               string
+	PrimitivesCID      string
 	ProviderURL        string
+	RecoveryPhrase     string
 	StakingContractCID string
 	Web3Token          string
 }
@@ -28,10 +29,11 @@ func New(env string) *Config {
 
 	return &Config{
 		BlockContractCID:   os.Getenv("BLOCK_NFT_CID"),
-		BlocksCID:          os.Getenv("BLOCKS_CID"),
 		Env:                env,
 		HomeDir:            hd,
+		PrimitivesCID:      os.Getenv("PRIMITIVES_CID"),
 		ProviderURL:        os.Getenv("PROVIDER_URL"),
+		RecoveryPhrase:     os.Getenv("RECOVERY_PHRASE"),
 		StakingContractCID: os.Getenv("STAKING_CID"),
 		Web3Token:          os.Getenv("WEB3STORAGE_TOKEN"),
 	}

@@ -73,8 +73,6 @@ func LoadContracts(c *config.Config) error {
 	fs.WalkDir(fsys, "/", func(path string, d fs.DirEntry, err error) error {
 		info, _ := d.Info()
 		if !info.IsDir() {
-			// fmt.Printf("%s (%d bytes)\n", path, info.Size())
-
 			file, err := fsys.Open(path)
 			if err != nil {
 				return err
@@ -90,7 +88,7 @@ func LoadContracts(c *config.Config) error {
 				return err
 			}
 
-			fmt.Printf("%s Address: %s\n", cnf.ContractName, cnf.Address)
+			// fmt.Printf("%s Address: %s\n", cnf.ContractName, cnf.Address)
 
 			contracts[cnf.ContractName] = Contract{
 				Address: cnf.Address,

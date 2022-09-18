@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/tyler-smith/go-bip39"
 	"github.com/umbracle/ethgo"
@@ -132,6 +134,59 @@ func LoadAccount(c *config.Config) (*Account, error) {
 	}
 
 	wallet := wallet.NewKey(privKey)
+
+	return &Account{
+		Address: wallet.Address(),
+		Client:  client,
+		IP:      []byte(ip.IP),
+		Wallet:  wallet,
+	}, nil
+}
+
+func RecoverAccount(c *config.Config) (*Account, error) {
+	if _, err := os.Stat(filepath.Join(c.HomeDir, ".crcls/keyfile")); err == nil {
+		return nil, fmt.Errorf("Keyfile found. Use LoadAccount instead.")
+	}
+
+	if c.RecoveryPhrase == "" {
+		return nil, fmt.Errorf("Recovery phrase not found")
+	}
+
+	seed, err := bip39.NewSeedWithErrorChecking(c.RecoveryPhrase, "")
+	if err != nil {
+		return nil, err
+	}
+	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
+	if err != nil {
+		return nil, err
+	}
+	privKey, err := wallet.DefaultDerivationPath.Derive(masterKey)
+	if err != nil {
+		return nil, err
+	}
+
+	keyfile, err := os.Create(filepath.Join(c.HomeDir, ".crcls", "keyfile"))
+	if err != nil {
+		fmt.Println("file error")
+		return nil, err
+	}
+	keyfile.Close()
+
+	if err := crypto.SaveECDSA(filepath.Join(c.HomeDir, ".crcls/keyfile"), privKey); err != nil {
+		return nil, err
+	}
+
+	wallet := wallet.NewKey(privKey)
+
+	client, err := jsonrpc.NewClient(c.ProviderURL)
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err := getIpAddress()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Account{
 		Address: wallet.Address(),

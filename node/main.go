@@ -20,6 +20,7 @@ var (
 	// Balance Flags
 	balanceFlags     = flag.NewFlagSet("balance", flag.ExitOnError)
 	showStakeBalance = balanceFlags.Bool("stake", false, "--stake - Show staking balance")
+	onlyValue        = balanceFlags.Bool("v", false, "Return only the value")
 
 	// Node Flags
 	nodeFlags = flag.NewFlagSet("node", flag.ExitOnError)
@@ -38,16 +39,27 @@ var CMDS = map[string]string{
 func initialize(c *config.Config) error {
 	if isInitialized(c.HomeDir) {
 		fmt.Println("The CLI is already initialized.")
-		os.Exit(1)
-	}
+	} else {
+		// Make the config directory in the user Home directory
+		if err := os.MkdirAll(filepath.Join(c.HomeDir, ".crcls"), 0755); err != nil {
+			return err
+		}
 
-	// Make the config directory in the user Home directory
-	if err := os.MkdirAll(filepath.Join(c.HomeDir, ".crcls"), 0755); err != nil {
-		return err
-	}
+		if c.RecoveryPhrase != "" {
+			account, err := RecoverAccount(c)
+			if err != nil {
+				return err
+			}
 
-	if _, err := GenerateAccount(c.HomeDir); err != nil {
-		return err
+			fmt.Printf("Account: %s\n", account.Address)
+		} else {
+			account, err := GenerateAccount(c.HomeDir)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Account: %s\n", account.Address)
+		}
 	}
 
 	return nil
@@ -99,7 +111,9 @@ func main() {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Address: %s\n", account.Address)
+			if !*onlyValue {
+				fmt.Printf("Account: %s\n", account.Address)
+			}
 
 			var balance *big.Int
 
@@ -122,7 +136,11 @@ func main() {
 				}
 			}
 
-			fmt.Printf("Balance: %s\n", balance)
+			if *onlyValue {
+				fmt.Printf("%d\n", balance)
+			} else {
+				fmt.Printf("Balance: %s\n", balance)
+			}
 		case "init":
 			if err := initialize(c); err != nil {
 				fmt.Println(err)

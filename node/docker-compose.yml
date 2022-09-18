@@ -2,12 +2,20 @@ version: '3.9'
 
 services:
   server-node:
-    build: .
-    container_name: blocksui-node
+    build:
+      context: .
+      dockerfile: ./docker/aws.Dockerfile
+    container_name: blocksui-node-aws
     image: blocksui-node
-    volumes:
-      - ".:/go/src"
-      - "../cache:/tmp/cache"
+    ports:
+      - '8081:80'
     environment:
+      BLOCK_NFT_CID: 0
+      PRIMITIVES_CID: ${PRIMITIVES_CID}
+      PROVIDER_URL: ${PROVIDER_URL}
+      RECOVERY_PHRASE: ${RECOVERY_PHRASE}
+      STAKING_CID: ${STAKING_CID}
+      WEB3STORAGE_TOKEN: ${WEB3STORAGE_TOKEN}
       ENV: development
       ACCESS_TOKEN: ${GITHUB_TOKEN}
+

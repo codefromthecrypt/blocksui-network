@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"os/exec"
 	"time"
 
@@ -102,4 +104,49 @@ func Web3Get(cid string, web3Token string) (*w3sHttp.Web3Response, error) {
 	}
 
 	return res, nil
+}
+
+func FilesForWeb3Res(res *w3sHttp.Web3Response) (files [][]byte, err error) {
+	var fsys fs.FS
+	_, fsys, err = res.Files()
+	if err != nil {
+		return
+	}
+
+	err = fs.WalkDir(fsys, "/", func(path string, d fs.DirEntry, err error) error {
+		info, _ := d.Info()
+		if !info.IsDir() {
+			file, err := fsys.Open(path)
+			if err != nil {
+				return err
+			}
+
+			data, err := io.ReadAll(file)
+			if err != nil {
+				return err
+			}
+
+			files = append(files, data)
+		}
+
+		return err
+	})
+
+	return
+}
+
+func FileFromWeb3Res(res *w3sHttp.Web3Response, name string) (file []byte, err error) {
+	var fsys fs.FS
+	var f fs.File
+	_, fsys, err = res.Files()
+	if err != nil {
+		return
+	}
+
+	f, err = fsys.Open("/blocks/" + name)
+	if err != nil {
+		return
+	}
+
+	return io.ReadAll(f)
 }
