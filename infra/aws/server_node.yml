@@ -1,14 +1,18 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description: CRCLS decentralized node infrastructure to support crcls.xyz
+Description: Blocks UI Server Node Network
 
 Parameters:
   ImageTag:
     Description: ARN for the node container in ECR
     Type: String
+  CertificateARN:
+    Description: The ARN for the certificate.
+    Default: 'arn:aws:acm:us-east-1:288140218613:certificate/a62d358e-f562-4e40-a4ad-47c6f0baf747'
+    Type: String
   DomainName:
-    Default: 'crcls.xyz'
+    Default: 'blocksui.io'
     Description: The FQDN for this website
     Type: String
   Subdomain:
@@ -20,24 +24,49 @@ Parameters:
     Description: Maximim amount of node tasks to run
     Type: String
   MinTaskCount:
-    Default: 2
+    Default: 1
     Description: Minimum amount of node tasks to run
     Type: String
+  BlockNftCid:
+    Description: Blocks NFT Contract CID for ABI
+    Type: String
+  PrimitivesCid:
+    Description: Block Primitives directory CID
+    Type: String
+  ProviderUrl:
+    Description: RPC provider URL
+    Type: String
+  RecoveryPhrase:
+    Description: Wallet mnemonic for account recovery
+    Type: String
+  StakingCid:
+    Description: Staking contract CID for ABI
+    Type: String
+  Web3StorageToken:
+    Description: Web3.Storage API token
+    Type: String
+
 
 Resources:
   VPC:
-    Description: Create the VPC for CRCLS app
+    Description: Create the VPC for BlocksUI Network
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://crcls-app.s3.${AWS::Region}.amazonaws.com/infra/vpc.yml'
+      TemplateURL: !Sub 'https://bui-network.s3.${AWS::Region}.amazonaws.com/vpc.yml'
 
   NodeCluster:
     Description: Create the ECS cluster, service, and tasks
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        ContainerName: crcls-node
-        Image: !Sub '288140218613.dkr.ecr.${AWS::Region}.amazonaws.com/crcls-node:${ImageTag}'
+        BlockNftCid: !Ref BlockNftCid
+        PrimitivesCid: !Ref PrimitivesCid
+        ProviderUrl: !Ref ProviderUrl
+        RecoveryPhrase: !Ref RecoveryPhrase
+        StakingCid: !Ref StakingCid
+        Web3StorageToken: !Ref Web3StorageToken
+        ContainerName: blocksui-server-node
+        Image: !Sub '288140218613.dkr.ecr.${AWS::Region}.amazonaws.com/blocksui-server-node:${ImageTag}'
         MaxTaskCount: !Ref MaxTaskCount
         MinTaskCount: !Ref MinTaskCount
         SecurityGroup: !GetAtt VPC.Outputs.NodeSecurityGroup
@@ -47,7 +76,7 @@ Resources:
           - - !GetAtt VPC.Outputs.PublicSubnet0
             - !GetAtt VPC.Outputs.PublicSubnet1
         VpcId: !GetAtt VPC.Outputs.VpcId
-      TemplateURL: !Sub 'https://crcls-node.s3.${AWS::Region}.amazonaws.com/infra/node_cluster.yml'
+      TemplateURL: !Sub 'https://bui-network.s3.${AWS::Region}.amazonaws.com/node_cluster.yml'
 
   # ------------------
   # CloudFront config
@@ -59,7 +88,7 @@ Resources:
         DefaultTTL: 86400
         MaxTTL: 86400
         MinTTL: 86400
-        Name: CRCLS-App-Node-Cache-Policy
+        Name: BlocksUI-Server-Node-Cache-Policy
         ParametersInCacheKeyAndForwardedToOrigin:
           CookiesConfig:
             CookieBehavior: none
@@ -77,7 +106,7 @@ Resources:
           CookieBehavior: none
         HeadersConfig:
           HeaderBehavior: allViewer
-        Name: CRCLS-OriginReqPolicy
+        Name: BlocksUI-OriginReqPolicy
         QueryStringsConfig:
           QueryStringBehavior: all
 
@@ -95,12 +124,18 @@ Resources:
               - 'Accept'
           AccessControlAllowMethods:
             Items:
-              - 'POST'
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - PATCH
+              - POST
+              - DELETE
           AccessControlAllowOrigins:
             Items:
               - '*'
           OriginOverride: false
-        Name: crcls-app-response-headers-policy
+        Name: blocksui-server-response-headers-policy
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -136,7 +171,7 @@ Resources:
         IPV6Enabled: true
         Logging:
           Bucket: !ImportValue 's3-crcls-logs-domain'
-          Prefix: !Sub 'app/cdn'
+          Prefix: bui/nodes
         Origins:
           - CustomOriginConfig:
               OriginProtocolPolicy: http-only
@@ -144,7 +179,7 @@ Resources:
             Id: !GetAtt NodeCluster.Outputs.AlbArn
         PriceClass: PriceClass_All
         ViewerCertificate:
-          AcmCertificateArn: 'arn:aws:acm:us-east-1:288140218613:certificate/bcd2f715-2dfa-4c40-8a59-223fb4065032'
+          AcmCertificateArn: !Ref CertificateARN
           MinimumProtocolVersion: 'TLSv1.2_2018'
           SslSupportMethod: 'sni-only'
 

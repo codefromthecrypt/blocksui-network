@@ -4,7 +4,7 @@ services:
   server-node:
     build:
       context: .
-      dockerfile: ./docker/aws.Dockerfile
+      dockerfile: ./docker/dev.Dockerfile
     container_name: blocksui-node-aws
     image: blocksui-node
     ports:
@@ -18,4 +18,5 @@ services:
       WEB3STORAGE_TOKEN: ${WEB3STORAGE_TOKEN}
       ENV: development
       ACCESS_TOKEN: ${GITHUB_TOKEN}
-
+    volumes:
+      - '.:/go/src'

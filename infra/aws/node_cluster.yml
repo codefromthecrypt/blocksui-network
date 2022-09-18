@@ -4,15 +4,19 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: ALB and ECS with Auto Scaling
 
 Parameters:
-  AbisHash:
+  BlockNftCid:
     Type: String
-  AssetsHash:
+  PrimitivesCid:
     Type: String
-  BlocksHash:
+  ProviderUrl:
+    Type: String
+  RecoveryPhrase:
+    Type: String
+  StakingCid:
+    Type: String
+  Web3StorageToken:
     Type: String
   ContainerName:
-    Type: String
-  HtmlHash:
     Type: String
   Image:
     Type: String
@@ -40,14 +44,14 @@ Resources:
         - Key: access_logs.s3.bucket
           Value: crcls-logs
         - Key: access_logs.s3.prefix
-          Value: 'app/server'
-      Name: !Sub '${AWS::Region}-CRCLS-App-Alb'
+          Value: bui/nodes
+      Name: !Sub 'BlocksUI-Network-Alb'
       SecurityGroups:
         - !Ref SecurityGroup
       Subnets: !Split [',', !Ref Subnets]
       Tags:
         - Key: Name
-          Value: 'CRCLS-App-Alb'
+          Value: 'BlocksUI-Network-Alb'
 
   HttpTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -58,7 +62,7 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckPath: /healthcheck
       HealthCheckTimeoutSeconds: 60
-      Name: app-server-service-http
+      Name: blocksui-network
       Port: 80
       Protocol: HTTP
       ProtocolVersion: HTTP1
@@ -82,7 +86,7 @@ Resources:
         Status: DISABLED
       FileSystemTags:
         - Key: Name
-          Value: 'crcls-app-cache'
+          Value: blocksui-network-cache
       PerformanceMode: generalPurpose
       ThroughputMode: bursting
 
@@ -105,7 +109,7 @@ Resources:
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: crcls-app
+      ClusterName: blocksui-network
       CapacityProviders:
         - FARGATE_SPOT
         - FARGATE
@@ -160,7 +164,7 @@ Resources:
             Principal:
               Service: [ecs-tasks.amazonaws.com]
             Action: ['sts:AssumeRole']
-      Description: Execution role for Neo4j ECS Task Definitions
+      Description: Execution role for ECS Task Definitions
       Policies:
         - PolicyDocument:
             Version: 2012-10-17
@@ -171,8 +175,8 @@ Resources:
                   - 'elasticfilesystem:ClientWrite'
                   - 'elasticfilesystem:ClientRootAccess'
                 Resource: '*'
-          PolicyName: !Sub '${AWS::Region}.crcls-app.EFSAccess'
-      RoleName: !Sub '${AWS::Region}.crcls-app.TaskRole'
+          PolicyName: blocksui-network.EFSAccess
+      RoleName: blocksui-network.TaskRole
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -180,16 +184,18 @@ Resources:
       ContainerDefinitions:
         - Essential: true
           Environment:
-            - Name: NODE_ENV
-              Value: production
-            - Name: ABIS_HASH
-              Value: !Ref AbisHash
-            - Name: ASSETS_HASH
-              Value: !Ref AssetsHash
-            - Name: BLOCKS_HASH
-              Value: !Ref BlocksHash
-            - Name: HTML_HASH
-              Value: !Ref HtmlHash
+            - Name: BLOCK_NFT_CID
+              Value: !Ref BlockNftCid
+            - Name: PRIMITIVES_CID
+              Value: !Ref PrimitivesCid
+            - Name: PROVIDER_URL
+              Value: !Ref ProviderUrl
+            - Name: RECOVERY_PHRASE
+              Value: !Ref RecoveryPhrase
+            - Name: STAKING_CID
+              Value: !Ref StakingCid
+            - Name: WEB3STORAGE_TOKEN
+              Value: !Ref Web3StorageToken
           Image: !Ref Image
           MountPoints:
             - SourceVolume: crcls-app-cache
@@ -198,7 +204,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: 'crcls-app'
+              awslogs-group: 'blocksui-network'
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: !Sub 'server/${ContainerName}'
           Name: !Ref ContainerName

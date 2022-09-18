@@ -12,6 +12,12 @@ import (
 
 var router *gin.Engine
 
+func CompileBlock(c *config.Config) gin.HandlerFunc {
+	return func(r *gin.Context) {
+		r.Status(http.StatusOK)
+	}
+}
+
 func GetAllMeta(c *config.Config) gin.HandlerFunc {
 	return func(r *gin.Context) {
 		r.Status(http.StatusOK)
@@ -63,8 +69,10 @@ func Start(c *config.Config) {
 	// GET /assets-worker.js
 	// GET *
 
+	router.GET("/healthcheck", func(r *gin.Context) { r.Status(200) })
 	router.GET("/blocks/meta", GetAllMeta(c))
-	router.GET("/blocks/:cid", GetBlock(c))
+	router.POST("/blocks/compile", CompileBlock(c))
+	router.GET("/blocks/:token", GetBlock(c))
 
 	router.GET("/primitives/:name", GetPrimitive(c))
 
