@@ -4,15 +4,17 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: ALB and ECS with Auto Scaling
 
 Parameters:
-  BlockNftCid:
+  ContractsCid:
+    Type: String
+  ChainName:
+    Type: String
+  NetworkName:
     Type: String
   PrimitivesCid:
     Type: String
   ProviderUrl:
     Type: String
   RecoveryPhrase:
-    Type: String
-  StakingCid:
     Type: String
   Web3StorageToken:
     Type: String
@@ -184,16 +186,18 @@ Resources:
       ContainerDefinitions:
         - Essential: true
           Environment:
-            - Name: BLOCK_NFT_CID
-              Value: !Ref BlockNftCid
+            - Name: CONTRACTS_CID
+              Value: !Ref ContractsCid
+            - Name: CHAIN_NAME
+              Value: !Ref ChainName
+            - Name: NETWORK_NAME
+              Value: !Ref NetworkName
             - Name: PRIMITIVES_CID
               Value: !Ref PrimitivesCid
             - Name: PROVIDER_URL
               Value: !Ref ProviderUrl
             - Name: RECOVERY_PHRASE
               Value: !Ref RecoveryPhrase
-            - Name: STAKING_CID
-              Value: !Ref StakingCid
             - Name: WEB3STORAGE_TOKEN
               Value: !Ref Web3StorageToken
           Image: !Ref Image

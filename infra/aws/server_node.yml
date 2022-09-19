@@ -11,6 +11,20 @@ Parameters:
     Description: The ARN for the certificate.
     Default: 'arn:aws:acm:us-east-1:288140218613:certificate/a62d358e-f562-4e40-a4ad-47c6f0baf747'
     Type: String
+  ChainName:
+    Description: What blockchain should be used
+    Type: String
+    AllowedValues:
+      - ethereum
+      - polygon
+  NetworkName:
+    Description: The network to use for the selected blockchain
+    Default: mainnet
+    Type: String
+    AllowedValues:
+      - mainnet
+      - goerli
+      - mumbai
   DomainName:
     Default: 'blocksui.io'
     Description: The FQDN for this website
@@ -27,9 +41,9 @@ Parameters:
     Default: 1
     Description: Minimum amount of node tasks to run
     Type: String
-  BlockNftCid:
-    Description: Blocks NFT Contract CID for ABI
-    Type: String
+  ContractsCid:
+    Description: CID for the folder where the Contract ABIs live
+    Type: string
   PrimitivesCid:
     Description: Block Primitives directory CID
     Type: String
@@ -38,9 +52,6 @@ Parameters:
     Type: String
   RecoveryPhrase:
     Description: Wallet mnemonic for account recovery
-    Type: String
-  StakingCid:
-    Description: Staking contract CID for ABI
     Type: String
   Web3StorageToken:
     Description: Web3.Storage API token
@@ -59,11 +70,12 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        BlockNftCid: !Ref BlockNftCid
+        ChainName: !Ref ChainName
+        ContractsCid: !Ref ContractsCid
+        NetworkName: !Ref NetworkName
         PrimitivesCid: !Ref PrimitivesCid
         ProviderUrl: !Ref ProviderUrl
         RecoveryPhrase: !Ref RecoveryPhrase
-        StakingCid: !Ref StakingCid
         Web3StorageToken: !Ref Web3StorageToken
         ContainerName: blocksui-server-node
         Image: !Sub '288140218613.dkr.ecr.${AWS::Region}.amazonaws.com/blocksui-server-node:${ImageTag}'

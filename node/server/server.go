@@ -62,13 +62,6 @@ func Start(c *config.Config) {
 	router.Use(cors.Default())
 
 	// Routes
-	// GET healthcheck
-	// DELETE cache
-	// POST /ipfs/api/v0/*
-	// POST /
-	// GET /assets-worker.js
-	// GET *
-
 	router.GET("/healthcheck", func(r *gin.Context) { r.Status(200) })
 	router.GET("/blocks/meta", GetAllMeta(c))
 	router.POST("/blocks/compile", CompileBlock(c))

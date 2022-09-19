@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"path/filepath"
 
 	"github.com/umbracle/ethgo"
 	"github.com/umbracle/ethgo/abi"
@@ -53,7 +54,7 @@ func LoadContracts(c *config.Config) error {
 		client = newClient
 	}
 
-	res, err := ipfs.Web3Get(c.StakingContractCID, c.Web3Token)
+	res, err := ipfs.Web3Get(c.ContractsCID, c.Web3Token)
 	if err != nil {
 		fmt.Println("Web3 Error")
 		return err
@@ -70,7 +71,9 @@ func LoadContracts(c *config.Config) error {
 
 	contracts = make(Contracts)
 
-	fs.WalkDir(fsys, "/", func(path string, d fs.DirEntry, err error) error {
+	path := filepath.Join("/ipfs", c.ChainName, c.NetworkName)
+
+	fs.WalkDir(fsys, path, func(path string, d fs.DirEntry, err error) error {
 		info, _ := d.Info()
 		if !info.IsDir() {
 			file, err := fsys.Open(path)
