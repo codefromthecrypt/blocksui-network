@@ -2,6 +2,7 @@ package server
 
 import (
 	"blocksui-node/config"
+	"blocksui-node/contracts"
 	"blocksui-node/ipfs"
 	"fmt"
 	"net/http"
@@ -53,6 +54,13 @@ func GetPrimitive(c *config.Config) gin.HandlerFunc {
 	}
 }
 
+func GetContractABIs(c *config.Config) gin.HandlerFunc {
+	return func(r *gin.Context) {
+		data := contracts.MarshalAll()
+		r.Data(200, "application/json", data)
+	}
+}
+
 func Start(c *config.Config) {
 	if c.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -66,6 +74,7 @@ func Start(c *config.Config) {
 	router.GET("/blocks/meta", GetAllMeta(c))
 	router.POST("/blocks/compile", CompileBlock(c))
 	router.GET("/blocks/:token", GetBlock(c))
+	router.GET("/contracts/abis", GetContractABIs(c))
 
 	router.GET("/primitives/:name", GetPrimitive(c))
 

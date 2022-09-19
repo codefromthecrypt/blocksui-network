@@ -43,7 +43,7 @@ Parameters:
     Type: String
   ContractsCid:
     Description: CID for the folder where the Contract ABIs live
-    Type: string
+    Type: String
   PrimitivesCid:
     Description: Block Primitives directory CID
     Type: String

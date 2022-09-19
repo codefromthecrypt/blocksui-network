@@ -17,14 +17,15 @@ import (
 
 type ContractConfig struct {
 	Address      ethgo.Address `json:"address"`
-	Abi          *abi.ABI
-	ContractName string `json:"contractName"`
+	Abi          *abi.ABI      `json:"abi"`
+	ContractName string        `json:"contractName"`
 }
 
 type Contract struct {
 	Address  ethgo.Address
 	Abi      *abi.ABI
 	Provider *contract.Contract
+	RawBytes []byte
 }
 
 func (c *Contract) Txn(method string, args ...interface{}) (contract.Txn, error) {
@@ -101,6 +102,7 @@ func LoadContracts(c *config.Config) error {
 					cnf.Abi,
 					contract.WithJsonRPC(client.Eth()),
 				),
+				RawBytes: data,
 			}
 		}
 
@@ -121,4 +123,19 @@ func ContractForSender(name string, withSender contract.ContractOption) *Contrac
 		Abi:      c.Abi,
 		Provider: contract.NewContract(c.Address, c.Abi, opts...),
 	}
+}
+
+func MarshalAll() []byte {
+	result := "{"
+	i := 0
+	for name, contract := range contracts {
+		result += `"` + name + `": `
+		result += string(contract.RawBytes)
+		i++
+		if i < len(contracts) {
+			result += ","
+		}
+	}
+
+	return []byte(result + "}")
 }
