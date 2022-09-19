@@ -56,7 +56,7 @@ func GetPrimitive(c *config.Config) gin.HandlerFunc {
 
 func GetContractABIs(c *config.Config) gin.HandlerFunc {
 	return func(r *gin.Context) {
-		data := contracts.MarshalAll()
+		data := contracts.MarshalABIs(c)
 		r.Data(200, "application/json", data)
 	}
 }

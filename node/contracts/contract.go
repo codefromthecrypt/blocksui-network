@@ -125,15 +125,19 @@ func ContractForSender(name string, withSender contract.ContractOption) *Contrac
 	}
 }
 
-func MarshalAll() []byte {
-	result := "{"
+func MarshalABIs(c *config.Config) []byte {
+	result := `{
+		"chain": "` + c.ChainName + `",
+		"network": "` + c.NetworkName + `",
+	`
 	i := 0
 	for name, contract := range contracts {
 		result += `"` + name + `": `
 		result += string(contract.RawBytes)
 		i++
 		if i < len(contracts) {
-			result += ","
+			result += `,
+			`
 		}
 	}
 
