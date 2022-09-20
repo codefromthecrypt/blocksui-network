@@ -5,10 +5,11 @@ services:
     build:
       context: .
       dockerfile: ./docker/dev.Dockerfile
-    container_name: blocksui-node-aws
+    container_name: blocksui-node-dev
     image: blocksui-node
     ports:
       - '8081:80'
+      - '5001:5001'
     environment:
       CHAIN_NAME: ${CHAIN_NAME}
       CONTRACTS_CID: ${CONTRACTS_CID}

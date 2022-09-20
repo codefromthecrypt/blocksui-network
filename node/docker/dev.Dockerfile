@@ -12,7 +12,7 @@ COPY --from=0 /tmp/modd-0.8-linux64/modd /usr/local/bin
 COPY --from=0 /tmp/kubo /tmp/kobo
 
 RUN /tmp/kobo/install.sh
-RUN ipfs --version
+RUN ipfs init
 
 RUN go env -w GOPRIVATE=github.com/crcls/*
 
