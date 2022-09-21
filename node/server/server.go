@@ -39,13 +39,29 @@ func GetPrimitive(c *config.Config) gin.HandlerFunc {
 			} else {
 				file, err := ipfs.FileFromWeb3Res(resp, name)
 				if err != nil {
-					r.Error(err)
 					r.AbortWithError(422, err)
 				} else {
 					r.Data(200, "text/javacript", file)
 				}
 			}
 		}
+	}
+}
+
+func GetBlocksCSS(c *config.Config) gin.HandlerFunc {
+	return func(r *gin.Context) {
+		resp, err := ipfs.Web3Get(c.PrimitivesCID, c.Web3Token)
+		if err != nil {
+			r.AbortWithError(404, err)
+			return
+		}
+
+		file, err := ipfs.FileFromWeb3Res(resp, "blocksui.css")
+		if err != nil {
+			r.AbortWithError(404, err)
+		}
+
+		r.Data(200, "text/css", file)
 	}
 }
 
@@ -114,6 +130,7 @@ func Start(c *config.Config) {
 	router.GET("/blocks/:token", GetBlock(c))
 	router.GET("/contracts/abis", GetContractABIs(c))
 	router.POST("/blocks/compile", CompileBlock(c))
+	router.GET("/primitives/blocksui.css", GetBlocksCSS(c))
 
 	router.GET("/primitives/:name", GetPrimitive(c))
 
