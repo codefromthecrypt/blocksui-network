@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://blocksui.xyz/">
-    <img alt="Blocks UI Protocol" src="assets/logo.svg" width="320" />
+    <img alt="Blocks UI Protocol" src="assets/blocksui.png" width="320" />
   </a>
 </p>
 
