@@ -1,15 +1,14 @@
 package server
 
 import (
+	"blocksui-node/account"
 	"blocksui-node/config"
 	"blocksui-node/contracts"
-	"blocksui-node/ipfs"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	goIpfs "github.com/ipfs/go-ipfs-api"
 )
 
 var router *gin.Engine
@@ -20,51 +19,6 @@ func GetAllMeta(c *config.Config) gin.HandlerFunc {
 	}
 }
 
-func GetBlock(c *config.Config) gin.HandlerFunc {
-	return func(r *gin.Context) {
-		r.Status(http.StatusOK)
-	}
-}
-
-func GetPrimitive(c *config.Config) gin.HandlerFunc {
-	return func(r *gin.Context) {
-		name := r.Param("name")
-		if name == "" {
-			err := fmt.Errorf("No name")
-			r.AbortWithError(422, err)
-		} else {
-			resp, err := ipfs.Web3Get(c.PrimitivesCID, c.Web3Token)
-			if err != nil {
-				r.AbortWithError(422, err)
-			} else {
-				file, err := ipfs.FileFromWeb3Res(resp, name)
-				if err != nil {
-					r.AbortWithError(422, err)
-				} else {
-					r.Data(200, "text/javacript", file)
-				}
-			}
-		}
-	}
-}
-
-func GetBlocksCSS(c *config.Config) gin.HandlerFunc {
-	return func(r *gin.Context) {
-		resp, err := ipfs.Web3Get(c.PrimitivesCID, c.Web3Token)
-		if err != nil {
-			r.AbortWithError(404, err)
-			return
-		}
-
-		file, err := ipfs.FileFromWeb3Res(resp, "blocksui.css")
-		if err != nil {
-			r.AbortWithError(404, err)
-		}
-
-		r.Data(200, "text/css", file)
-	}
-}
-
 func GetContractABIs(c *config.Config) gin.HandlerFunc {
 	return func(r *gin.Context) {
 		data := contracts.MarshalABIs(c)
@@ -72,51 +26,7 @@ func GetContractABIs(c *config.Config) gin.HandlerFunc {
 	}
 }
 
-func CompileBlock(c *config.Config) gin.HandlerFunc {
-	return func(r *gin.Context) {
-		ipfs, err := ipfs.Connect()
-		if err != nil {
-			r.AbortWithError(500, err)
-			return
-		}
-
-		form, err := r.MultipartForm()
-		if err != nil {
-			fmt.Printf("%+v\n", err)
-			r.AbortWithError(422, err)
-			return
-		}
-
-		if len(form.File) == 0 {
-			fmt.Println("No files were uploaded")
-			r.AbortWithError(422, fmt.Errorf("No files were uploaded"))
-			return
-		}
-
-		files, ok := form.File["block"]
-		if !ok {
-			r.AbortWithError(422, fmt.Errorf("File uploaded should use the name `block`"))
-			return
-		}
-
-		file, err := files[0].Open()
-		defer file.Close()
-		if err != nil {
-			r.AbortWithError(500, err)
-			return
-		}
-
-		cid, err := ipfs.Add(file, goIpfs.OnlyHash(true))
-		if err != nil {
-			r.AbortWithError(500, err)
-			return
-		}
-
-		r.String(200, cid)
-	}
-}
-
-func Start(c *config.Config) {
+func Start(c *config.Config, a *account.Account) {
 	if c.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -126,14 +36,53 @@ func Start(c *config.Config) {
 
 	// Routes
 	router.GET("/healthcheck", func(r *gin.Context) { r.Status(200) })
+	router.GET("/contracts/abis", GetContractABIs(c))
+
+	// Blocks
 	router.GET("/blocks/meta", GetAllMeta(c))
 	router.GET("/blocks/:token", GetBlock(c))
-	router.GET("/contracts/abis", GetContractABIs(c))
-	router.POST("/blocks/compile", CompileBlock(c))
 	router.GET("/primitives/blocksui.css", GetBlocksCSS(c))
-
 	router.GET("/primitives/:name", GetPrimitive(c))
 
-	fmt.Println(c.Port)
+	// Three steps
+	// 1. Compile Block - (Will be done with esbuild)
+	// 2. Encrypt with Lit - (needs to match the Lit encryption flow)
+	// 5. Create metadata and upload to IPFS
+	router.POST("/blocks/compile",
+		IPFSConnect,
+		CompileBlock,
+		LitEncrypt(c, a),
+		SaveMetadata,
+		func(r *gin.Context) {
+			cid := r.MustGet("cid").(string)
+			metaURI := r.MustGet("metaURI").(string)
+
+			r.JSON(http.StatusOK, map[string]string{
+				"cid":         cid,
+				"metadataURI": metaURI,
+			})
+		},
+	)
+
+	// Auth
+	router.POST("/auth/sign", AuthenticateNode(c, a), SignMessage)
+	router.POST("/auth/token",
+		func(r *gin.Context) {
+			var params AuthParams
+			if err := r.ShouldBind(&params); err != nil {
+				r.AbortWithError(422, err)
+				return
+			}
+
+			r.Set("params", params)
+			r.Next()
+		},
+		AuthenticateNode(c, a),
+		AuthenticateSignature,
+		AuthenticateBlock,
+		CreateToken(c),
+	)
+
+	fmt.Printf("Node server running on port: %s\n", c.Port)
 	router.Run(c.Port)
 }

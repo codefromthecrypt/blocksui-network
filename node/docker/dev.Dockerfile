@@ -21,4 +21,4 @@ ENV GOMODCACHE=/tmp/cache
 
 WORKDIR /go/src
 
-CMD ["modd"]
+CMD ["./start.sh", "modd.conf"]

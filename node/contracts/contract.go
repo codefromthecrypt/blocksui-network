@@ -10,30 +10,32 @@ import (
 	"path/filepath"
 
 	"github.com/umbracle/ethgo"
-	"github.com/umbracle/ethgo/abi"
+	ethgoAbi "github.com/umbracle/ethgo/abi"
 	"github.com/umbracle/ethgo/contract"
 	"github.com/umbracle/ethgo/jsonrpc"
 )
 
 type ContractConfig struct {
 	Address      ethgo.Address `json:"address"`
-	Abi          *abi.ABI      `json:"abi"`
+	Abi          *ethgoAbi.ABI `json:"abi"`
 	ContractName string        `json:"contractName"`
+	EncryptedKey string        `json:"encryptedKey"`
 }
 
 type Contract struct {
-	Address  ethgo.Address
-	Abi      *abi.ABI
-	Provider *contract.Contract
-	RawBytes []byte
+	Address      ethgo.Address
+	Abi          *ethgoAbi.ABI
+	Provider     *contract.Contract
+	RawBytes     []byte
+	EncryptedKey string
 }
 
 func (c *Contract) Txn(method string, args ...interface{}) (contract.Txn, error) {
 	return c.Provider.Txn(method, args...)
 }
 
-func (c *Contract) Call(method string, block ethgo.BlockNumber, args ...interface{}) (map[string]interface{}, error) {
-	return c.Provider.Call(method, block, args...)
+func (c *Contract) Call(method string, args ...interface{}) (map[string]interface{}, error) {
+	return c.Provider.Call(method, ethgo.Latest, args...)
 }
 
 type Contracts map[string]Contract
@@ -74,7 +76,7 @@ func LoadContracts(c *config.Config) error {
 
 	path := filepath.Join("/ipfs", c.ChainName, c.NetworkName)
 
-	fs.WalkDir(fsys, path, func(path string, d fs.DirEntry, err error) error {
+	return fs.WalkDir(fsys, path, func(path string, d fs.DirEntry, err error) error {
 		info, _ := d.Info()
 		if !info.IsDir() {
 			file, err := fsys.Open(path)
@@ -92,8 +94,6 @@ func LoadContracts(c *config.Config) error {
 				return err
 			}
 
-			// fmt.Printf("%s Address: %s\n", cnf.ContractName, cnf.Address)
-
 			contracts[cnf.ContractName] = Contract{
 				Address: cnf.Address,
 				Abi:     cnf.Abi,
@@ -102,14 +102,21 @@ func LoadContracts(c *config.Config) error {
 					cnf.Abi,
 					contract.WithJsonRPC(client.Eth()),
 				),
-				RawBytes: data,
+				RawBytes:     data,
+				EncryptedKey: cnf.EncryptedKey,
 			}
 		}
 
 		return err
 	})
+}
 
-	return nil
+func GetContract(name string) (*Contract, bool) {
+	if c, ok := contracts[name]; ok {
+		return &c, true
+	}
+
+	return nil, false
 }
 
 func ContractForSender(name string, withSender contract.ContractOption) *Contract {

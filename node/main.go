@@ -1,6 +1,7 @@
 package main
 
 import (
+	"blocksui-node/account"
 	"blocksui-node/config"
 	"blocksui-node/contracts"
 	"blocksui-node/server"
@@ -46,19 +47,19 @@ func initialize(c *config.Config) error {
 		}
 
 		if c.RecoveryPhrase != "" {
-			account, err := RecoverAccount(c)
+			a, err := account.RecoverAccount(c)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("Account: %s\n", account.Address)
+			fmt.Printf("Account: %s\n", a.Address)
 		} else {
-			account, err := GenerateAccount(c.HomeDir)
+			a, err := account.GenerateAccount(c.HomeDir)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("Account: %s\n", account.Address)
+			fmt.Printf("Account: %s\n", a.Address)
 		}
 	}
 
@@ -94,7 +95,7 @@ func main() {
 		switch os.Args[1] {
 		case "help":
 			fmt.Println("")
-			fmt.Println("Usage: crcls command [OPTIONS]")
+			fmt.Println("Usage: bui command [OPTIONS]")
 			fmt.Println("")
 
 			for cmd, description := range CMDS {
@@ -105,14 +106,15 @@ func main() {
 			balanceFlags.Parse(os.Args[2:])
 
 			ensureInit(c.HomeDir)
-			account, err := LoadAccount(c)
+
+			a, err := account.LoadAccount(c)
 			if err != nil {
 				fmt.Printf("[Load Accounts] %v\n", err)
 				os.Exit(1)
 			}
 
 			if !*onlyValue {
-				fmt.Printf("Account: %s\n", account.Address)
+				fmt.Printf("Account: %s\n", a.Address)
 			}
 
 			var balance *big.Int
@@ -123,13 +125,13 @@ func main() {
 					os.Exit(1)
 				}
 
-				balance, err = contracts.StakeBalance(account.Address)
+				balance, err = contracts.StakeBalance(a.Address)
 				if err != nil {
 					fmt.Printf("[Stake Balances] %v\n", err)
 					os.Exit(1)
 				}
 			} else {
-				balance, err = account.Balance()
+				balance, err = a.Balance()
 				if err != nil {
 					fmt.Printf("[Account Balance] %v\n", err)
 					os.Exit(1)
@@ -160,20 +162,20 @@ func main() {
 				os.Exit(1)
 			}
 
-			account, err := LoadAccount(c)
+			a, err := account.LoadAccount(c)
 			if err != nil {
 				fmt.Printf("[Load Accounts] %v\n", err)
 			}
 
-			if ok := account.VerifyStake(); !ok {
+			if ok := a.VerifyStake(); !ok {
 				fmt.Println("Your staking account is too low on funds. Please register again to top up your account.")
 				os.Exit(1)
 			}
 
-			fmt.Printf("Account Loaded: %s\n", account.Address)
+			fmt.Printf("Account Loaded: %s\n", a.Address)
 
-			fmt.Println("Starting the CRCLS Node")
-			server.Start(c)
+			fmt.Println("Starting the BUI Node")
+			server.Start(c, a)
 		case "register":
 			ensureInit(c.HomeDir)
 
@@ -182,28 +184,28 @@ func main() {
 				os.Exit(1)
 			}
 
-			account, err := LoadAccount(c)
+			a, err := account.LoadAccount(c)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Printf("Account Loaded: %s\n", account.Address)
+			fmt.Printf("Account Loaded: %s\n", a.Address)
 
-			stake, err := contracts.CalcStake(account.Address)
+			stake, err := contracts.CalcStake(a.Address)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)
 			}
 			fmt.Printf("Stake Required: %s\n", stake)
-			balance, err := account.Balance()
+			balance, err := a.Balance()
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)
 			}
 			fmt.Printf("Account Balance: %s\n", balance)
 
-			if contracts.Register(account.Sender(), account.IP, stake) {
+			if contracts.Register(a.Sender(), a.IP, stake) {
 				fmt.Println("Registration complete.")
 				os.Exit(0)
 			}
@@ -217,18 +219,18 @@ func main() {
 				os.Exit(1)
 			}
 
-			account, err := LoadAccount(c)
+			a, err := account.LoadAccount(c)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Printf("Account Loaded: %s\n", account.Address)
+			fmt.Printf("Accouna Loaded: %s\n", a.Address)
 
-			if contracts.Unregister(account.Sender()) {
+			if contracts.Unregister(a.Sender()) {
 				fmt.Println("Successfully unregistered.")
 
-				balance, err := account.Balance()
+				balance, err := a.Balance()
 				if err != nil {
 					fmt.Printf("%v\n", err)
 					os.Exit(1)
