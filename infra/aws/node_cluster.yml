@@ -8,6 +8,8 @@ Parameters:
     Type: String
   ChainName:
     Type: String
+  LitVersion:
+    Type: String
   NetworkName:
     Type: String
   PrimitivesCid:
@@ -190,6 +192,10 @@ Resources:
               Value: !Ref ContractsCid
             - Name: CHAIN_NAME
               Value: !Ref ChainName
+            - Name: ENV
+              Value: production
+            - Name: LIT_VERSION
+              Value: !Ref LitVersion
             - Name: NETWORK_NAME
               Value: !Ref NetworkName
             - Name: PRIMITIVES_CID

@@ -40,7 +40,14 @@ func Start(c *config.Config, a *account.Account) {
 
 	// Blocks
 	router.GET("/blocks/meta", GetAllMeta(c))
-	router.GET("/blocks/:token", GetBlock(c))
+	router.GET("/blocks/:token",
+		IPFSConnect,
+		AuthenticateNode(c, a),
+		AuthenticateToken,
+		AuthenticateBlock,
+		AuthenticateSignature,
+		GetBlock(c),
+	)
 	router.GET("/primitives/blocksui.css", GetBlocksCSS(c))
 	router.GET("/primitives/:name", GetPrimitive(c))
 

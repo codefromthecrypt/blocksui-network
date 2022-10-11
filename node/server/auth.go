@@ -22,6 +22,7 @@ import (
 type AuthParams struct {
 	Address   ethgo.Address `json:"address" binding:"required"`
 	BlockCID  string        `json:"cid" binding:"required"`
+	TokenId   uint64        `json:"tokenId" binding:"required"`
 	Chain     string        `json:"chain" binding:"required"`
 	IssueDate string        `json:"issueDate" binding:"required"`
 	Origin    string        `json:"origin" binding:"required"`
@@ -125,7 +126,6 @@ func AuthenticateNode(c *config.Config, a *account.Account) gin.HandlerFunc {
 
 		keyData, err := litClient.GetEncryptionKey(params)
 		if err != nil {
-			fmt.Printf("Authenticate Error: %v\n", err)
 			r.AbortWithError(401, err)
 			return
 		}
@@ -222,11 +222,17 @@ func CreateToken(c *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		date, err := time.Parse(time.RFC3339, params.IssueDate)
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"aud": params.Origin,
-			"sub": strings.Join([]string{params.Type, params.BlockCID}, ":"),
+			"sub": strings.Join([]string{params.Chain, params.Type, strconv.FormatUint(params.TokenId, 10), params.BlockCID}, ":"),
 			"iss": strings.Join([]string{params.Address.String(), params.Sig}, ":"),
-			"nbf": params.IssueDate,
+			"nbf": float64(date.Unix()),
 		})
 
 		tokenStr, err := token.SignedString(pkb)
@@ -236,5 +242,55 @@ func CreateToken(c *config.Config) gin.HandlerFunc {
 		}
 
 		r.String(200, tokenStr)
+	}
+}
+
+func AuthenticateToken(r *gin.Context) {
+	netpk := r.MustGet("networkPrivKey").(string)
+	pkb, err := hex.DecodeString(netpk)
+	if err != nil {
+		r.AbortWithError(500, err)
+		return
+	}
+
+	token, err := jwt.Parse(r.Param("token"), func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return pkb, nil
+	})
+
+	if err != nil {
+		r.AbortWithError(500, err)
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		sub := strings.Split(claims["sub"].(string), ":")
+		iss := strings.Split(claims["iss"].(string), ":")
+
+		date := time.Unix(int64(claims["nbf"].(float64)), 0)
+		tokenId, err := strconv.ParseUint(sub[2], 10, 64)
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		params := AuthParams{
+			Address:   ethgo.HexToAddress(iss[0]),
+			BlockCID:  sub[3],
+			Chain:     sub[0],
+			IssueDate: date.Format(time.RFC3339),
+			Origin:    claims["aud"].(string),
+			Sig:       iss[1],
+			TokenId:   tokenId,
+			Type:      sub[1],
+		}
+
+		r.Set("params", params)
+		r.Next()
+	} else {
+		r.AbortWithError(401, fmt.Errorf("JWT Claims failed"))
 	}
 }

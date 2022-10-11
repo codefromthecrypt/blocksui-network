@@ -24,6 +24,8 @@ func (c *Client) GetEncryptionKey(
 		return nil, fmt.Errorf("LitClient: not ready")
 	}
 
+	// fmt.Printf("%+v\n", params)
+
 	ch := make(chan DecryptResMsg)
 
 	for url := range c.ConnectedNodes {
@@ -146,16 +148,24 @@ func (c *Client) SaveEncryptionKey(
 		return "", err
 	}
 
-	hash := sha256.Sum256(key)
-	hashStr := fmt.Sprintf("%x", hash)
+	hash := sha256.New()
+	hash.Write(key)
+	hashStr := hex.EncodeToString(hash.Sum(nil))
+
+	fmt.Printf("Key SHA: %s\n", hashStr)
 
 	condJson, err := json.Marshal(authConditions)
 	if err != nil {
 		return "", err
 	}
 
-	cHash := sha256.Sum256(condJson)
-	cHashStr := fmt.Sprintf("%x", cHash)
+	fmt.Printf("Cond JSON: %s\n", condJson)
+
+	cHash := sha256.New()
+	cHash.Write(condJson)
+	cHashStr := hex.EncodeToString(cHash.Sum(nil))
+
+	fmt.Printf("Cond SHA: %s\n", cHashStr)
 
 	ch := make(chan SaveCondMsg)
 
@@ -191,5 +201,5 @@ func (c *Client) SaveEncryptionKey(
 		return "", err
 	}
 
-	return hashStr, nil
+	return hex.EncodeToString(key), nil
 }

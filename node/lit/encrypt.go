@@ -82,7 +82,7 @@ func ThresholdEncrypt(subPubKey []byte, message []byte) ([]byte, error) {
 	}
 
 	ctSize, err := wasm.Call("encrypt", uint64(len(message)))
-	ciphertext := make([]byte, ctSize.(uint64))
+	ciphertext := make([]byte, 0, ctSize.(uint64))
 	for i := uint64(0); i < ctSize.(uint64); i++ {
 		b, err := wasm.Call("get_ct_byte", i)
 		if err != nil {

@@ -48,13 +48,13 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 		authConditions := []lit.EvmContractCondition{
 			lit.EvmContractCondition{
 				ContractAddress: contract.Address.String(),
-				Chain:           c.Chain(),
+				Chain:           c.Chain(), // TODO: make this configurable
+				FunctionAbi:     abi.MethodToMember(method),
 				FunctionName:    "verifyOwner",
 				FunctionParams: []string{
 					b32Cid,
 					":userAddress",
 				},
-				FunctionAbi: abi.MethodToMember(method),
 				ReturnValueTest: lit.ReturnValueTest{
 					Key:        "",
 					Comparator: "=",
@@ -62,6 +62,8 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 				},
 			},
 		}
+
+		fmt.Printf("Save Conditions: %+v\n", authConditions[0])
 
 		// TODO: need a chain <> name map
 		authSig, err := a.Siwe("80001", "")
@@ -86,15 +88,13 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 		// fmt.Printf("Encrypted Key: %s\n", encryptedKey)
 
 		metadata.BUIProps = BUIProps{
-			AuthConditions: authConditions,
-			Cid:            cid,
-			EncryptedKey:   encryptedKey,
+			Cid:          cid,
+			EncryptedKey: encryptedKey,
 		}
 
 		r.Set("metadata", metadata)
 		r.Set("cid", b32Cid)
 
-		// Save condition to Lit
 		r.Next()
 	}
 }

@@ -10,11 +10,13 @@ services:
     ports:
       - '8081:80'
       - '5001:5001'
+      - '4001:4001'
+      - '4001:4001/udp'
     environment:
       CHAIN_NAME: polygon
       CONTRACTS_CID: bafybeiejmrfrb35hbrjv6pwvr3pjqmwd7udhnzuwiqdkmjx6z27t3ehf3i
       ENV: development
-      LIT_VERSION: '1.1.226'
+      LIT_VERSION: '1.1.228'
       NETWORK_NAME: mumbai
       PRIMITIVES_CID: bafybeid56uuij36vyn4tgbt3kwjdeo5vujzr2yftuvajdi4f4hld4wpkzq
       PROVIDER_URL: https://polygon-mumbai.g.alchemy.com/v2/GMjfFHzHyL2Vfd8dzuENAxRDtExd18rc

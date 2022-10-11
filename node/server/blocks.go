@@ -1,12 +1,18 @@
 package server
 
 import (
+	"blocksui-node/abi"
+	"blocksui-node/account"
 	"blocksui-node/config"
+	"blocksui-node/contracts"
 	"blocksui-node/ipfs"
 	"blocksui-node/lit"
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	goIpfs "github.com/ipfs/go-ipfs-api"
@@ -14,8 +20,98 @@ import (
 
 func GetBlock(c *config.Config) gin.HandlerFunc {
 	return func(r *gin.Context) {
-		// 1. Fetch decryption key for node
-		// 2. Decrypt token
+		params := r.MustGet("params").(AuthParams)
+		signedMessage := r.MustGet("signedMessage").(string)
+		ipfs := r.MustGet("ipfs").(*goIpfs.Shell)
+
+		authSig := account.AuthSig{
+			Sig:           params.Sig,
+			DerivedVia:    "BlocksUI",
+			SignedMessage: signedMessage,
+			Address:       params.Address.String(),
+		}
+
+		contractName := "BUILicenseNFT"
+		if params.Type == "block" {
+			contractName = "BUIBlockNFT"
+		}
+
+		contract, ok := contracts.GetContract(contractName)
+		if !ok {
+			r.AbortWithError(500, fmt.Errorf("Failed to fetch contract"))
+			return
+		}
+
+		method := contract.Abi.GetMethod("verifyOwner")
+
+		conditions := []lit.EvmContractCondition{
+			lit.EvmContractCondition{
+				ContractAddress: contract.Address.String(),
+				Chain:           contracts.ChainNameForId(params.Chain),
+				FunctionAbi:     abi.MethodToMember(method),
+				FunctionName:    "verifyOwner",
+				FunctionParams: []string{
+					params.BlockCID,
+					":userAddress",
+				},
+				ReturnValueTest: lit.ReturnValueTest{
+					Key:        "",
+					Comparator: "=",
+					Value:      "true",
+				},
+			},
+		}
+
+		fmt.Printf("Retrieve Conditions: %+v\n", conditions[0])
+
+		bcont, ok := contracts.GetContract("BUIBlockNFT")
+		if !ok {
+			r.AbortWithError(500, fmt.Errorf("Failed to fetch contract"))
+			return
+		}
+
+		result, err := bcont.Call("tokenURI", params.TokenId)
+		if err != nil {
+			r.AbortWithError(401, fmt.Errorf("Failed to fetch TokenURI"))
+			return
+		}
+
+		uri := result["0"].(string)
+		cid := strings.Split(uri, "//")[1]
+
+		data, err := ipfs.Cat(cid)
+		if err != nil {
+			r.AbortWithError(422, err)
+			return
+		}
+
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, data); err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		blockMeta := BlockMeta{}
+		if err := json.Unmarshal(buf.Bytes(), &blockMeta); err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		keyParams := lit.EncryptedKeyParams{
+			AuthSig:               &authSig,
+			Chain:                 contracts.ChainNameForId(params.Chain),
+			EvmContractConditions: conditions,
+			ToDecrypt:             blockMeta.BUIProps.EncryptedKey,
+		}
+
+		litClient := lit.New(c)
+		symmetricKey, err := litClient.GetEncryptionKey(keyParams)
+		if err != nil {
+			r.AbortWithError(401, err)
+			return
+		}
+
+		r.String(200, hex.EncodeToString(symmetricKey))
 	}
 }
 
@@ -59,9 +155,8 @@ func GetBlocksCSS(c *config.Config) gin.HandlerFunc {
 }
 
 type BUIProps struct {
-	Cid            string                     `json:"cid"`
-	EncryptedKey   string                     `json:"encryptedKey"`
-	AuthConditions []lit.EvmContractCondition `json:"authConditions"`
+	Cid          string `json:"cid"`
+	EncryptedKey string `json:"encryptedKey"`
 }
 
 type BlockMeta struct {
@@ -129,9 +224,9 @@ func SaveMetadata(r *gin.Context) {
 		return
 	}
 
-	// fmt.Printf("Metadata: %s\n", data)
+	fmt.Printf("Metadata: %s\n", data)
 
-	cid, err := ipfs.Add(bytes.NewBuffer(data), goIpfs.OnlyHash(true))
+	cid, err := ipfs.Add(bytes.NewBuffer(data))
 	if err != nil {
 		r.AbortWithError(500, err)
 		return

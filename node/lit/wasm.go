@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	// "github.com/wasmerio/wasmer-go/wasmer"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/emscripten"
