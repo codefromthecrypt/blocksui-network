@@ -1,10 +1,9 @@
-package main
+package account
 
 import (
 	"blocksui-node/config"
-	"blocksui-node/contracts"
+	"crypto/ecdsa"
 	"fmt"
-	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -24,34 +23,11 @@ type Account struct {
 	Client  *jsonrpc.Client
 	IP      []byte
 	Wallet  *wallet.Key
+	AuthSig *AuthSig
 }
 
 func (a *Account) Sender() contract.ContractOption {
 	return contract.WithSender(a.Wallet)
-}
-
-func (a *Account) Balance() (*big.Int, error) {
-	return a.Client.Eth().GetBalance(a.Address, ethgo.Latest)
-}
-
-func (a *Account) StakeBalance() (*big.Int, error) {
-	return contracts.StakeBalance(a.Address)
-}
-
-func (a *Account) VerifyStake() bool {
-	cost, err := contracts.StakingCost()
-	if err != nil {
-		fmt.Printf("[contracts]\t%v\n", err)
-		return false
-	}
-
-	balance, err := contracts.StakeBalance(a.Address)
-	if err != nil {
-		fmt.Printf("[contracts]\t%v\n", err)
-		return false
-	}
-
-	return balance.Cmp(cost) != -1
 }
 
 func getIpAddress() (*net.UDPAddr, error) {
@@ -80,14 +56,14 @@ func GenerateAccount(homeDir string) (*Account, error) {
 		return nil, err
 	}
 
-	keyfile, err := os.Create(filepath.Join(homeDir, ".crcls", "keyfile"))
+	keyfile, err := os.Create(filepath.Join(homeDir, ".bui", "keyfile"))
 	if err != nil {
 		fmt.Println("file error")
 		return nil, err
 	}
 	keyfile.Close()
 
-	if err := crypto.SaveECDSA(filepath.Join(homeDir, ".crcls/keyfile"), privKey); err != nil {
+	if err := crypto.SaveECDSA(filepath.Join(homeDir, ".bui/keyfile"), privKey); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +89,7 @@ func GenerateAccount(homeDir string) (*Account, error) {
 }
 
 func LoadAccount(c *config.Config) (*Account, error) {
-	if _, err := os.Stat(filepath.Join(c.HomeDir, ".crcls/keyfile")); err != nil {
+	if _, err := os.Stat(filepath.Join(c.HomeDir, ".bui/keyfile")); err != nil {
 		return nil, fmt.Errorf("Keyfile not found")
 	}
 
@@ -122,7 +98,7 @@ func LoadAccount(c *config.Config) (*Account, error) {
 		return nil, err
 	}
 
-	privKey, err := crypto.LoadECDSA(filepath.Join(c.HomeDir, ".crcls/keyfile"))
+	privKey, err := crypto.LoadECDSA(filepath.Join(c.HomeDir, ".bui/keyfile"))
 
 	if err != nil {
 		return nil, err
@@ -144,38 +120,45 @@ func LoadAccount(c *config.Config) (*Account, error) {
 }
 
 func RecoverAccount(c *config.Config) (*Account, error) {
-	if _, err := os.Stat(filepath.Join(c.HomeDir, ".crcls/keyfile")); err == nil {
+	if _, err := os.Stat(filepath.Join(c.HomeDir, ".bui/keyfile")); err == nil {
 		return nil, fmt.Errorf("Keyfile found. Use LoadAccount instead.")
 	}
 
-	if c.RecoveryPhrase == "" {
-		return nil, fmt.Errorf("Recovery phrase not found")
+	var privKey *ecdsa.PrivateKey
+	var err error
+	if c.PrivateKey != "" {
+		privKey, err = crypto.HexToECDSA(c.PrivateKey)
+		if err != nil {
+			fmt.Println("Failed to parse priv key")
+			return nil, err
+		}
+	} else if c.RecoveryPhrase != "" {
+		seed, err := bip39.NewSeedWithErrorChecking(c.RecoveryPhrase, "")
+		if err != nil {
+			return nil, err
+		}
+		masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
+		if err != nil {
+			return nil, err
+		}
+		privKey, err = wallet.DefaultDerivationPath.Derive(masterKey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("Private key or Recovery phrase missing")
 	}
 
-	seed, err := bip39.NewSeedWithErrorChecking(c.RecoveryPhrase, "")
-	if err != nil {
-		return nil, err
-	}
-	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
-	if err != nil {
-		return nil, err
-	}
-	privKey, err := wallet.DefaultDerivationPath.Derive(masterKey)
-	if err != nil {
-		return nil, err
-	}
-
-	keyfile, err := os.Create(filepath.Join(c.HomeDir, ".crcls", "keyfile"))
+	keyfile, err := os.Create(filepath.Join(c.HomeDir, ".bui", "keyfile"))
 	if err != nil {
 		fmt.Println("file error")
 		return nil, err
 	}
 	keyfile.Close()
 
-	if err := crypto.SaveECDSA(filepath.Join(c.HomeDir, ".crcls/keyfile"), privKey); err != nil {
+	if err := crypto.SaveECDSA(filepath.Join(c.HomeDir, ".bui/keyfile"), privKey); err != nil {
 		return nil, err
 	}
-
 	wallet := wallet.NewKey(privKey)
 
 	client, err := jsonrpc.NewClient(c.ProviderURL)

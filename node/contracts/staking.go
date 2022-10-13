@@ -20,7 +20,7 @@ func toHexString(bytes []byte) string {
 func StakingCost() (*big.Int, error) {
 	ctr := contracts["BUINodeStaking"]
 
-	res, err := ctr.Call("stakingCost", ethgo.Latest)
+	res, err := ctr.Call("stakingCost")
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +29,12 @@ func StakingCost() (*big.Int, error) {
 }
 
 func StakeBalance(address ethgo.Address) (*big.Int, error) {
-	ctr := contracts["BUINodeStaking"]
+	ctr, ok := GetContract("BUINodeStaking")
+	if !ok {
+		return nil, fmt.Errorf("Could not load BUINodeStaking contract")
+	}
 
-	res, err := ctr.Call("balance", ethgo.Latest, address)
+	res, err := ctr.Call("balance", address)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +45,7 @@ func StakeBalance(address ethgo.Address) (*big.Int, error) {
 func Verify(address ethgo.Address) (bool, error) {
 	ctr := contracts["BUINodeStaking"]
 
-	res, err := ctr.Call("verify", ethgo.Latest, address)
+	res, err := ctr.Call("verify", address)
 	if err != nil {
 		return false, err
 	}
@@ -66,6 +69,7 @@ func CalcStake(address ethgo.Address) (*big.Int, error) {
 
 func Register(sender contract.ContractOption, ip []byte, stake *big.Int) bool {
 	ctr := ContractForSender("BUINodeStaking", sender)
+	// TODO: hex.EncodeToString
 	ipHash := toHexString(ip)
 
 	txn, err := ctr.Txn("register", ipHash)

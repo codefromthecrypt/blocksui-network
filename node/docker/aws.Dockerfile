@@ -15,17 +15,19 @@ RUN mkdir /tmp/cache
 ENV GOMODCACHE=/tmp/cache
 
 WORKDIR /go/src
+ADD abi/ abi/
+ADD account/ account/
 ADD config/ config/
 ADD contracts/ contracts/
 ADD ipfs/ ipfs/
+ADD lit/ lit/
 ADD server/ server/
-ADD account.go .
 ADD go.mod .
 ADD go.sum .
 ADD main.go .
 ADD modd.prod.conf .
 RUN go build -o /usr/bin/bui
 
-ADD ecs.sh .
+ADD start.sh .
 
-CMD ["./ecs.sh"]
+CMD ["./start.sh", "modd.prod.conf"]
