@@ -108,8 +108,6 @@ func GetBlock(c *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		fmt.Println(symmetricKey)
-
 		blockCid := ipfs.Bytes32ToCid(params.BlockCID)
 
 		blockData, err := ipfsClient.Cat(blockCid)

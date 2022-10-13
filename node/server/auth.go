@@ -75,17 +75,6 @@ func SignMessage(a *account.Account) gin.HandlerFunc {
 			params.IssueDate,
 		)
 
-		// TODO: remove
-		msgBytes := account.EIP191(msg)
-		sig, err := a.Wallet.SignMsg(msgBytes)
-		if err != nil {
-			r.AbortWithError(500, err)
-			return
-		}
-
-		fmt.Println(hex.EncodeToString(sig))
-		// End
-
 		r.String(200, msg)
 	}
 }

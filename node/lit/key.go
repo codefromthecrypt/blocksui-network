@@ -2,7 +2,6 @@ package lit
 
 import (
 	"blocksui-node/account"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -23,8 +22,6 @@ func (c *Client) GetEncryptionKey(
 	if !c.Ready {
 		return nil, fmt.Errorf("LitClient: not ready")
 	}
-
-	// fmt.Printf("%+v\n", params)
 
 	ch := make(chan DecryptResMsg)
 
@@ -59,76 +56,7 @@ func (c *Client) GetEncryptionKey(
 		return shares[i].ShareIndex < shares[j].ShareIndex
 	})
 
-	wasm, err := NewWasmInstance(context.Background())
-	if err != nil {
-		fmt.Println("GetEncryptionKey: failed to get wasm")
-		return nil, err
-	}
-
-	for i, share := range shares {
-		if _, err := wasm.Call("set_share_indexes", uint64(i), uint64(share.ShareIndex)); err != nil {
-			fmt.Println("GetEncryptionKey: set_share_indexes failed")
-			return nil, err
-		}
-
-		shareBytes, err := hex.DecodeString(share.DecryptionShare)
-		if err != nil {
-			return nil, err
-		}
-
-		for idx, b := range shareBytes {
-			if _, err := wasm.Call("set_decryption_shares_byte", uint64(idx), uint64(i), uint64(b)); err != nil {
-				fmt.Println("GetEncryptionKey: set_decryption_shares_byte failed")
-				return nil, err
-			}
-		}
-	}
-
-	pkSetBytes, err := hex.DecodeString(c.NetworkPubKeySet)
-	if err != nil {
-		return nil, err
-	}
-
-	for idx, b := range pkSetBytes {
-		if _, err := wasm.Call("set_mc_byte", uint64(idx), uint64(b)); err != nil {
-			fmt.Println("GetEncryptionKey: set_mc_byte failed")
-			return nil, err
-		}
-	}
-
-	ctBytes, err := hex.DecodeString(params.ToDecrypt)
-	if err != nil {
-		return nil, err
-	}
-
-	for idx, b := range ctBytes {
-		if _, err := wasm.Call("set_ct_byte", uint64(idx), uint64(b)); err != nil {
-			fmt.Println("GetEncryptionKey: set_ct_byte failed")
-			return nil, err
-		}
-	}
-
-	size, err := wasm.Call("combine_decryption_shares", uint64(len(shares)), uint64(len(pkSetBytes)), uint64(len(ctBytes)))
-	if err != nil {
-		fmt.Println("GetEncryptionKey: combine_decryption_shares failed")
-		return nil, err
-	}
-
-	result := make([]byte, 0)
-
-	for i := 0; i < int(size.(uint64)); i++ {
-		b, err := wasm.Call("get_msg_byte", uint64(i))
-		if err != nil {
-			fmt.Println("GetEncryptionKey: get_msg_byte failed")
-			return nil, err
-		}
-
-		result = append(result, byte(b.(uint64)))
-	}
-
-	wasm.Close()
-
-	return result, nil
+	return ThresholdDecrypt(shares, params.ToDecrypt, c.NetworkPubKeySet)
 }
 
 func (c *Client) SaveEncryptionKey(
@@ -137,7 +65,6 @@ func (c *Client) SaveEncryptionKey(
 	authConditions []EvmContractCondition,
 	chain string,
 ) (string, error) {
-	// fmt.Printf("SubnetKey: %s\n", c.SubnetPubKey)
 	subPubKey, err := hex.DecodeString(c.SubnetPubKey)
 	if err != nil {
 		return "", err
@@ -152,20 +79,14 @@ func (c *Client) SaveEncryptionKey(
 	hash.Write(key)
 	hashStr := hex.EncodeToString(hash.Sum(nil))
 
-	fmt.Printf("Key SHA: %s\n", hashStr)
-
 	condJson, err := json.Marshal(authConditions)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Printf("Cond JSON: %s\n", condJson)
-
 	cHash := sha256.New()
 	cHash.Write(condJson)
 	cHashStr := hex.EncodeToString(cHash.Sum(nil))
-
-	fmt.Printf("Cond SHA: %s\n", cHashStr)
 
 	ch := make(chan SaveCondMsg)
 

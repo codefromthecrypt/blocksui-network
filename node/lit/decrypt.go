@@ -1,8 +1,10 @@
 package lit
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -75,4 +77,77 @@ func GetDecryptionShare(url string, params EncryptedKeyParams, c *Client, ch cha
 	}
 
 	ch <- DecryptResMsg{share, nil}
+}
+
+func ThresholdDecrypt(shares []DecryptionShareResponse, ciphertext, netPubKeySet string) ([]byte, error) {
+	wasm, err := NewWasmInstance(context.Background())
+	if err != nil {
+		fmt.Println("GetEncryptionKey: failed to get wasm")
+		return nil, err
+	}
+	defer wasm.Close()
+
+	for i, share := range shares {
+		if _, err := wasm.Call("set_share_indexes", uint64(i), uint64(share.ShareIndex)); err != nil {
+			fmt.Println("GetEncryptionKey: set_share_indexes failed")
+			return nil, err
+		}
+
+		shareBytes, err := hex.DecodeString(share.DecryptionShare)
+		if err != nil {
+			return nil, err
+		}
+
+		for idx, b := range shareBytes {
+			if _, err := wasm.Call("set_decryption_shares_byte", uint64(idx), uint64(i), uint64(b)); err != nil {
+				fmt.Println("GetEncryptionKey: set_decryption_shares_byte failed")
+				return nil, err
+			}
+		}
+	}
+
+	pkSetBytes, err := hex.DecodeString(netPubKeySet)
+	if err != nil {
+		return nil, err
+	}
+
+	for idx, b := range pkSetBytes {
+		if _, err := wasm.Call("set_mc_byte", uint64(idx), uint64(b)); err != nil {
+			fmt.Println("GetEncryptionKey: set_mc_byte failed")
+			return nil, err
+		}
+	}
+
+	ctBytes, err := hex.DecodeString(ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	for idx, b := range ctBytes {
+		if _, err := wasm.Call("set_ct_byte", uint64(idx), uint64(b)); err != nil {
+			fmt.Println("GetEncryptionKey: set_ct_byte failed")
+			return nil, err
+		}
+	}
+
+	size, err := wasm.Call("combine_decryption_shares", uint64(len(shares)), uint64(len(pkSetBytes)), uint64(len(ctBytes)))
+	if err != nil {
+		fmt.Println("GetEncryptionKey: combine_decryption_shares failed")
+		return nil, err
+	}
+
+	si := int(size.(uint64))
+	result := make([]byte, 0, si)
+
+	for i := 0; i < si; i++ {
+		b, err := wasm.Call("get_msg_byte", uint64(i))
+		if err != nil {
+			fmt.Println("GetEncryptionKey: get_msg_byte failed")
+			return nil, err
+		}
+
+		result = append(result, byte(b.(uint64)))
+	}
+
+	return result, nil
 }

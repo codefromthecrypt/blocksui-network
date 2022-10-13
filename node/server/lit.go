@@ -20,10 +20,8 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 		plaintext := r.MustGet("block").([]byte)
 		metadata := r.MustGet("metadata").(*BlockMeta)
 
-		// fmt.Printf("Plaintext:\n\n%s\n", string(plaintext))
 		symmetricKey := lit.Prng(32)
 		ciphertext := lit.AesEncrypt(symmetricKey, plaintext)
-		// fmt.Printf("Ciphertext: %x, Key: %x\n", ciphertext, symmetricKey)
 
 		cid, err := ipfsClient.Add(bytes.NewBuffer(ciphertext))
 		if err != nil {
@@ -63,8 +61,6 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 			},
 		}
 
-		fmt.Printf("Save Conditions: %+v\n", authConditions[0])
-
 		// TODO: need a chain <> name map
 		authSig, err := a.Siwe("80001", "")
 		if err != nil {
@@ -84,8 +80,6 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 			r.AbortWithError(500, err)
 			return
 		}
-
-		// fmt.Printf("Encrypted Key: %s\n", encryptedKey)
 
 		metadata.BUIProps = BUIProps{
 			Cid:          cid,
