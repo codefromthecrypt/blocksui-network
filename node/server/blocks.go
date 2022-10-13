@@ -120,7 +120,7 @@ func GetBlock(c *config.Config) gin.HandlerFunc {
 		block := lit.AesDecrypt(symmetricKey, bbuf.Bytes())
 
 		blockRes := make([]map[string]interface{}, 0)
-		if err := json.Unmarshal(block[1:len(block)-1], &blockRes); err != nil {
+		if err := json.Unmarshal(block, &blockRes); err != nil {
 			r.AbortWithError(500, err)
 			return
 		}
