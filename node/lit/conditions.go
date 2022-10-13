@@ -15,10 +15,10 @@ type ReturnValueTest struct {
 
 type EvmContractCondition struct {
 	ContractAddress string          `json:"contractAddress"`
-	Chain           string          `json:"chain"`
 	FunctionName    string          `json:"functionName"`
 	FunctionParams  []string        `json:"functionParams"`
 	FunctionAbi     abi.AbiMember   `json:"functionAbi"`
+	Chain           string          `json:"chain"`
 	ReturnValueTest ReturnValueTest `json:"returnValueTest"`
 }
 
@@ -27,7 +27,7 @@ type SaveCondParams struct {
 	Val       string          `json:"val"`
 	AuthSig   account.AuthSig `json:"authSig"`
 	Chain     string          `json:"chain"`
-	Permanent int             `json:"permanant"`
+	Permanent int             `json:"permanant"` // Purposely misspelled to match API
 }
 
 type SaveCondResponse struct {

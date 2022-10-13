@@ -25,7 +25,7 @@ func LitEncrypt(c *config.Config, a *account.Account) gin.HandlerFunc {
 		ciphertext := lit.AesEncrypt(symmetricKey, plaintext)
 		// fmt.Printf("Ciphertext: %x, Key: %x\n", ciphertext, symmetricKey)
 
-		cid, err := ipfsClient.Add(bytes.NewBuffer(ciphertext), goIpfs.OnlyHash(true))
+		cid, err := ipfsClient.Add(bytes.NewBuffer(ciphertext))
 		if err != nil {
 			r.AbortWithError(500, err)
 			return

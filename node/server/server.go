@@ -38,6 +38,10 @@ func Start(c *config.Config, a *account.Account) {
 	router.GET("/healthcheck", func(r *gin.Context) { r.Status(200) })
 	router.GET("/contracts/abis", GetContractABIs(c))
 
+	// Primitives
+	router.GET("/primitives/blocksui.css", GetBlocksCSS(c))
+	router.GET("/primitives/:name", GetPrimitive(c))
+
 	// Blocks
 	router.GET("/blocks/meta", GetAllMeta(c))
 	router.GET("/blocks/:token",
@@ -48,13 +52,6 @@ func Start(c *config.Config, a *account.Account) {
 		AuthenticateSignature,
 		GetBlock(c),
 	)
-	router.GET("/primitives/blocksui.css", GetBlocksCSS(c))
-	router.GET("/primitives/:name", GetPrimitive(c))
-
-	// Three steps
-	// 1. Compile Block - (Will be done with esbuild)
-	// 2. Encrypt with Lit - (needs to match the Lit encryption flow)
-	// 5. Create metadata and upload to IPFS
 	router.POST("/blocks/compile",
 		IPFSConnect,
 		CompileBlock,
@@ -72,7 +69,7 @@ func Start(c *config.Config, a *account.Account) {
 	)
 
 	// Auth
-	router.POST("/auth/sign", AuthenticateNode(c, a), SignMessage)
+	router.POST("/auth/sign", AuthenticateNode(c, a), SignMessage(a))
 	router.POST("/auth/token",
 		func(r *gin.Context) {
 			var params AuthParams

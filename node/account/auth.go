@@ -74,6 +74,12 @@ func RecoverAddress(signature, plaintext string) (addr ethgo.Address, err error)
 		return
 	}
 
+	if sig[len(sig)-1] == 28 {
+		sig[len(sig)-1] = 1
+	}
+
+	// fmt.Printf("%s\n", string(EIP191(plaintext)))
+
 	addr, err = wallet.EcrecoverMsg(EIP191(plaintext), sig)
 	if err != nil {
 		fmt.Println("AuthSig verify failed", err)

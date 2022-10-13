@@ -10,10 +10,10 @@ type AbiIO struct {
 }
 
 type AbiMember struct {
-	Inputs          []AbiIO `json:"inputs"`
 	Name            string  `json:"name"`
+	Inputs          []AbiIO `json:"inputs"`
 	Outputs         []AbiIO `json:"outputs"`
-	Type            string  `json:"type"`
+	Constant        bool    `json:"constant"`
 	StateMutability string  `json:"stateMutability"`
 }
 
@@ -40,7 +40,6 @@ func MethodToMember(m *ethgoAbi.Method) AbiMember {
 		Inputs:          ToAbiIOGroup(m.Inputs),
 		Name:            m.Name,
 		Outputs:         ToAbiIOGroup(m.Outputs),
-		Type:            "function",
 		StateMutability: "view",
 	}
 }

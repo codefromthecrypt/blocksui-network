@@ -8,7 +8,6 @@ import (
 	"blocksui-node/ipfs"
 	"blocksui-node/lit"
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,7 +21,7 @@ func GetBlock(c *config.Config) gin.HandlerFunc {
 	return func(r *gin.Context) {
 		params := r.MustGet("params").(AuthParams)
 		signedMessage := r.MustGet("signedMessage").(string)
-		ipfs := r.MustGet("ipfs").(*goIpfs.Shell)
+		ipfsClient := r.MustGet("ipfs").(*goIpfs.Shell)
 
 		authSig := account.AuthSig{
 			Sig:           params.Sig,
@@ -62,8 +61,6 @@ func GetBlock(c *config.Config) gin.HandlerFunc {
 			},
 		}
 
-		fmt.Printf("Retrieve Conditions: %+v\n", conditions[0])
-
 		bcont, ok := contracts.GetContract("BUIBlockNFT")
 		if !ok {
 			r.AbortWithError(500, fmt.Errorf("Failed to fetch contract"))
@@ -79,7 +76,7 @@ func GetBlock(c *config.Config) gin.HandlerFunc {
 		uri := result["0"].(string)
 		cid := strings.Split(uri, "//")[1]
 
-		data, err := ipfs.Cat(cid)
+		data, err := ipfsClient.Cat(cid)
 		if err != nil {
 			r.AbortWithError(422, err)
 			return
@@ -111,7 +108,26 @@ func GetBlock(c *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		r.String(200, hex.EncodeToString(symmetricKey))
+		fmt.Println(symmetricKey)
+
+		blockCid := ipfs.Bytes32ToCid(params.BlockCID)
+
+		blockData, err := ipfsClient.Cat(blockCid)
+		bbuf := new(bytes.Buffer)
+		if _, err := io.Copy(bbuf, blockData); err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		block := lit.AesDecrypt(symmetricKey, bbuf.Bytes())
+
+		blockRes := make([]map[string]interface{}, 0)
+		if err := json.Unmarshal(block[1:len(block)-1], &blockRes); err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		r.JSON(200, blockRes)
 	}
 }
 
@@ -176,36 +192,33 @@ func CompileBlock(r *gin.Context) {
 		return
 	}
 
-	if len(form.File) == 0 {
-		fmt.Println("No files were uploaded")
-		r.AbortWithError(422, fmt.Errorf("No files were uploaded"))
-		return
-	}
-
-	files, ok := form.File["image"]
-	if !ok {
-		r.AbortWithError(422, fmt.Errorf("File uploaded should use the name `block`"))
-		return
-	}
-
-	image, err := files[0].Open()
-	defer image.Close()
-	if err != nil {
-		r.AbortWithError(500, err)
-		return
-	}
-
-	imgCid, err := ipfs.Add(image, goIpfs.OnlyHash(true))
-	if err != nil {
-		r.AbortWithError(500, err)
-		return
-	}
-
 	metadata := BlockMeta{
 		Description: form.Value["description"][0],
-		Image:       fmt.Sprintf("ipfs://%s", imgCid),
 		Name:        form.Value["name"][0],
 		Tags:        form.Value["tags"][0],
+	}
+
+	if len(form.File) != 0 {
+		files, ok := form.File["image"]
+		if !ok {
+			r.AbortWithError(422, fmt.Errorf("File uploaded should use the name `block`"))
+			return
+		}
+
+		image, err := files[0].Open()
+		defer image.Close()
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		imgCid, err := ipfs.Add(image, goIpfs.OnlyHash(true))
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		metadata.Image = fmt.Sprintf("ipfs://%s", imgCid)
 	}
 
 	r.Set("metadata", &metadata)
@@ -223,8 +236,6 @@ func SaveMetadata(r *gin.Context) {
 		r.AbortWithError(500, err)
 		return
 	}
-
-	fmt.Printf("Metadata: %s\n", data)
 
 	cid, err := ipfs.Add(bytes.NewBuffer(data))
 	if err != nil {

@@ -19,9 +19,11 @@ services:
       LIT_VERSION: '1.1.228'
       NETWORK_NAME: mumbai
       PRIMITIVES_CID: bafybeid56uuij36vyn4tgbt3kwjdeo5vujzr2yftuvajdi4f4hld4wpkzq
-      PROVIDER_URL: https://polygon-mumbai.g.alchemy.com/v2/GMjfFHzHyL2Vfd8dzuENAxRDtExd18rc
-      RECOVERY_PHRASE: "inject struggle truly episode wing spread just nature false spread option wet stock unique imitate champion absorb train famous arrive agent habit neck sadness"
-      WEB3STORAGE_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDc5NDI1OGJmOTNDNTUyMmU0ZTFkNzEyMkRBNjdFZERlRENCNUZkNzIiLCJpc3MiOiJ3ZWIzLXN0b3JhZ2UiLCJpYXQiOjE2NjMyMDc4Mjg4MTUsIm5hbWUiOiJCbG9ja3NVSSJ9.u0b4cN7AUkr56iD_juch7OyFjgQRkaiictzmyxAIix0
+      PROVIDER_URL: ${PROVIDER_URL}
+      PRIVATE_KEY: ${PK}
+      RECOVERY_PHRASE: ${RECOVERY_PHRASE}
+      WEB3STORAGE_TOKEN: ${WEB3STORAGE_TOKEN}
       ACCESS_TOKEN: ${GITHUB_TOKEN}
     volumes:
       - '.:/go/src'
+      - './.bui:/root/.bui'

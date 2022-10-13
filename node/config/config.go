@@ -14,14 +14,10 @@ type Config struct {
 	NetworkName     string
 	Port            string
 	PrimitivesCID   string
+	PrivateKey      string
 	ProviderURL     string
 	RecoveryPhrase  string
 	Web3Token       string
-}
-
-func (c *Config) WithPort(port string) *Config {
-	c.Port = port
-	return c
 }
 
 func (c *Config) Chain() string {
@@ -47,6 +43,7 @@ func New(env string) *Config {
 		MinLitNodeCount: 6,
 		NetworkName:     os.Getenv("NETWORK_NAME"),
 		PrimitivesCID:   os.Getenv("PRIMITIVES_CID"),
+		PrivateKey:      os.Getenv("PRIVATE_KEY"),
 		ProviderURL:     os.Getenv("PROVIDER_URL"),
 		RecoveryPhrase:  os.Getenv("RECOVERY_PHRASE"),
 		Web3Token:       os.Getenv("WEB3STORAGE_TOKEN"),

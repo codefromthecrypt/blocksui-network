@@ -26,12 +26,13 @@ var (
 	// Node Flags
 	nodeFlags = flag.NewFlagSet("node", flag.ExitOnError)
 	port      = nodeFlags.String("p", ":80", "-p :8080")
+	privKey   = nodeFlags.String("pk", "", "-pk [Ethereum wallet private key]")
 )
 
 var CMDS = map[string]string{
 	"balance":    "Returns the node's ether balance. Use --stake to get your staking balance.",
 	"init":       "Initialize the CLI.",
-	"node":       "Runs the CRCLS node.",
+	"node":       "Runs the BUI node.",
 	"register":   "Register this node with the network.",
 	"unregister": "Unregister this node with the network.",
 	"help":       "Prints the help context.",
@@ -42,11 +43,11 @@ func initialize(c *config.Config) error {
 		fmt.Println("The CLI is already initialized.")
 	} else {
 		// Make the config directory in the user Home directory
-		if err := os.MkdirAll(filepath.Join(c.HomeDir, ".crcls"), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(c.HomeDir, ".bui"), 0755); err != nil {
 			return err
 		}
 
-		if c.RecoveryPhrase != "" {
+		if c.RecoveryPhrase != "" || c.PrivateKey != "" {
 			a, err := account.RecoverAccount(c)
 			if err != nil {
 				return err
@@ -67,11 +68,11 @@ func initialize(c *config.Config) error {
 }
 
 func isInitialized(homeDir string) bool {
-	_, derr := os.Stat(path.Join(homeDir, ".crcls"))
+	_, derr := os.Stat(path.Join(homeDir, ".bui"))
 	if os.IsNotExist(derr) {
 		return false
 	} else {
-		_, kerr := os.Stat(path.Join(homeDir, ".crcls/keyfile"))
+		_, kerr := os.Stat(path.Join(homeDir, ".bui/keyfile"))
 		if os.IsNotExist(kerr) {
 			return false
 		}
@@ -90,6 +91,10 @@ func ensureInit(homeDir string) {
 func main() {
 	mainFlags.Parse(os.Args[1:])
 	c := config.New(*env)
+
+	if *privKey != "" {
+		c.PrivateKey = *privKey
+	}
 
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -155,7 +160,7 @@ func main() {
 			ensureInit(c.HomeDir)
 
 			nodeFlags.Parse(os.Args[2:])
-			c.WithPort(*port)
+			c.Port = *port
 
 			if err := contracts.LoadContracts(c); err != nil {
 				fmt.Printf("[Load Contracts] %v\n", err)
@@ -205,6 +210,8 @@ func main() {
 			}
 			fmt.Printf("Account Balance: %s\n", balance)
 
+			// TODO: Ask for permission to spend the stake amount.
+
 			if contracts.Register(a.Sender(), a.IP, stake) {
 				fmt.Println("Registration complete.")
 				os.Exit(0)
@@ -243,18 +250,18 @@ func main() {
 		default:
 			fmt.Println("")
 			fmt.Println("")
-			fmt.Println("Usage: crcls command [OPTIONS]")
+			fmt.Println("Usage: bui command [OPTIONS]")
 			fmt.Println("")
-			fmt.Println("For list of commands please use: crcls help")
+			fmt.Println("For list of commands please use: bui help")
 			fmt.Println("")
 		}
 	} else {
 		fmt.Println("")
 		fmt.Println("Missing command.")
 		fmt.Println("")
-		fmt.Println("Usage: crcls command [OPTIONS]")
+		fmt.Println("Usage: bui command [OPTIONS]")
 		fmt.Println("")
-		fmt.Println("For list of commands please use: crcls help")
+		fmt.Println("For list of commands please use: bui help")
 		fmt.Println("")
 		os.Exit(1)
 	}

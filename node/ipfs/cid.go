@@ -19,3 +19,12 @@ func CidToBytes32(cid string) string {
 
 	return "0x" + hex.EncodeToString(dmh.Digest)
 }
+
+func Bytes32ToCid(b32 string) string {
+	mh, err := multihash.FromHexString("1220" + b32[2:])
+	if err != nil {
+		panic(err)
+	}
+
+	return mh.B58String()
+}

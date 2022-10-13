@@ -46,35 +46,48 @@ func Sign4361Statement(key []byte, cid, origin string) string {
 	return fmt.Sprintf("Block Authorization:\n%s\n", hex.EncodeToString(payload))
 }
 
-func SignMessage(r *gin.Context) {
-	netpk := r.MustGet("networkPrivKey").(string)
-	pkb, err := hex.DecodeString(netpk)
-	if err != nil {
-		r.AbortWithError(500, err)
-		return
+func SignMessage(a *account.Account) gin.HandlerFunc {
+	return func(r *gin.Context) {
+		netpk := r.MustGet("networkPrivKey").(string)
+		pkb, err := hex.DecodeString(netpk)
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		params := MessageParams{}
+		if err := r.ShouldBind(&params); err != nil {
+			r.AbortWithError(422, err)
+			return
+		}
+
+		date, err := time.Parse(time.RFC3339, params.IssueDate)
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		msg := account.EIP4361(
+			params.Address,
+			Sign4361Statement(pkb, params.BlockCID, params.Origin),
+			params.Chain,
+			strconv.FormatInt(date.Unix(), 10),
+			params.IssueDate,
+		)
+
+		// TODO: remove
+		msgBytes := account.EIP191(msg)
+		sig, err := a.Wallet.SignMsg(msgBytes)
+		if err != nil {
+			r.AbortWithError(500, err)
+			return
+		}
+
+		fmt.Println(hex.EncodeToString(sig))
+		// End
+
+		r.String(200, msg)
 	}
-
-	params := MessageParams{}
-	if err := r.ShouldBind(&params); err != nil {
-		r.AbortWithError(422, err)
-		return
-	}
-
-	date, err := time.Parse(time.RFC3339, params.IssueDate)
-	if err != nil {
-		r.AbortWithError(500, err)
-		return
-	}
-
-	msg := account.EIP4361(
-		params.Address,
-		Sign4361Statement(pkb, params.BlockCID, params.Origin),
-		params.Chain,
-		strconv.FormatInt(date.Unix(), 10),
-		params.IssueDate,
-	)
-
-	r.String(200, msg)
 }
 
 func AuthenticateNode(c *config.Config, a *account.Account) gin.HandlerFunc {

@@ -173,10 +173,11 @@ func (c *Client) SaveEncryptionKey(
 		go StoreEncryptionConditionWithNode(
 			url,
 			SaveCondParams{
-				Key:     hashStr,
-				Val:     cHashStr,
-				AuthSig: authSig,
-				Chain:   chain,
+				Key:       hashStr,
+				Val:       cHashStr,
+				AuthSig:   authSig,
+				Chain:     chain,
+				Permanent: 1,
 			},
 			c,
 			ch,
@@ -198,7 +199,7 @@ func (c *Client) SaveEncryptionKey(
 	}
 
 	if e != nil {
-		return "", err
+		return "", e
 	}
 
 	return hex.EncodeToString(key), nil

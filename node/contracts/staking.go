@@ -69,6 +69,7 @@ func CalcStake(address ethgo.Address) (*big.Int, error) {
 
 func Register(sender contract.ContractOption, ip []byte, stake *big.Int) bool {
 	ctr := ContractForSender("BUINodeStaking", sender)
+	// TODO: hex.EncodeToString
 	ipHash := toHexString(ip)
 
 	txn, err := ctr.Txn("register", ipHash)

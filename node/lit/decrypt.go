@@ -1,10 +1,33 @@
 package lit
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 )
+
+func PKCS7UnPadding(plaintext []byte) []byte {
+	length := len(plaintext)
+	unpadding := int(plaintext[length-1])
+	return plaintext[:(length - unpadding)]
+}
+
+func AesDecrypt(key []byte, ciphertext []byte) (plaintext []byte) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	iv := ciphertext[:aes.BlockSize]
+	plaintext = make([]byte, len(ciphertext)-aes.BlockSize)
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(plaintext, ciphertext[aes.BlockSize:])
+
+	return PKCS7UnPadding(plaintext)
+}
 
 type DecryptionShareResponse struct {
 	DecryptionShare string `json:"decryptionShare"`
