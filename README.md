@@ -1,3 +1,7 @@
+# ⚠️ WIP: This project is being actively worked on.👷
+
+Please see the [Contributing Guide](#-contributing) below.
+
 <p align="center">
   <a href="https://blocksui.xyz/">
     <img alt="Blocks UI Protocol" src="assets/blocksui.png" width="320" />
@@ -32,21 +36,13 @@
   <a href="https://litprotocol.com/" style="display: inline-block">
     <img src="assets/lit-protocol.svg" alt="Lit Protocol logo" width="54">
   </a>
-  <a href="https://moralis.io/" style="display: inline-block">
-    <img src="assets/moralis.svg" alt="Moralis logo" width="154">
-  </a>
   <a href="https://polygon.technology/" style="display: inline-block">
     <img src="assets/polygon.svg" alt="Polygon logo" width="166">
-  </a>
-  <a href="https://web3.storage/" style="display: inline-block">
-    <img src="assets/web3-storage.svg" alt="Web3 Storage logo" width="40">
   </a>
 </p>
 
 ## Table of Contents
 
-- [Moralis + Filecoin 1-2-Web3 Hackathon](#moralis--filecoin-1-2-web3-hackathon)
-  - [Use of hackathon tech](#use-of-hackathon-tech)
 - [Contributing](#contributing)
   - [Types](#types)
   - [Branches](#branches)
@@ -54,25 +50,14 @@
   - [Pull Requests](#pull-requests)
   - [Merging Into Main](#merging-into-main)
 
-# Moralis + Filecoin 1-2-Web3 Hackathon.
 
-This project is the entry to the [Moralis](https://moralis.io/) x [Filecoin](https://filecoin.io/) hackathon from the [CRCLS](https://github.com/crcls) team. It consists of five repositories:
+## Blocks UI Protocol
 
 - [Blocks UI App](https://github.com/crcls/blocksui-app)
 - [Blocks UI Blocks](https://github.com/crcls/blocksui-blocks)
 - [Blocks UI Contracts](https://github.com/crcls/blocksui-contract)
 - [Blocks UI Network](https://github.com/crcls/blocksui-network)
 - [Blocks UI SDK](https://github.com/crcls/blocksui-sdk)
-
-## Use of hackathon tech
-
-1. [node/ipfs/ipfs.go L86-L152](https://github.com/crcls/blocksui-network/blob/main/node/ipfs/ipfs.go#L86-L152) - Used Web3.Storage for getting the Block Primitive files to server to the app
-2. [node/docker/aws.Dockerfile L11-L12](https://github.com/crcls/blocksui-network/blob/main/node/docker/aws.Dockerfile#L11-L12) - Install a local IPFS node in the Server Node container
-3. [node/modd.prod.conf L2](https://github.com/crcls/blocksui-network/blob/main/node/modd.prod.conf#L2) - Run the ipfs daemon in the docker container
-4. [node/ipfs/ipfs.go L20-L84](https://github.com/crcls/blocksui-network/blob/main/node/ipfs/ipfs.go#L20-L84) - Connect to the local IPFS node and optionally start a new daemon if there isn’t one.
-5. [node/server/server.go L109](https://github.com/crcls/blocksui-network/blob/main/node/server/server.go#L109) - Upload the Block config to IPFS (Needed CID v0)
-6. [node/server/server.go L29-L66](https://github.com/crcls/blocksui-network/blob/main/node/server/server.go#L29-L66) - Fetch the Primitives from routes /primitives/:name
-7. [node/contracts/contracts.go L58](https://github.com/crcls/blocksui-network/blob/main/node/contracts/contract.go#L58) - Fetch contract configs from Web3.Storage
 
 ## 🤝 Contributing
 

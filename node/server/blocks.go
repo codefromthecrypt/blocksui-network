@@ -191,9 +191,9 @@ func CompileBlock(r *gin.Context) {
 	}
 
 	metadata := BlockMeta{
-		Description: form.Value["description"][0],
-		Name:        form.Value["name"][0],
-		Tags:        form.Value["tags"][0],
+		Description: form.Value["description"],
+		Name:        form.Value["name"],
+		Tags:        form.Value["tags"],
 	}
 
 	if len(form.File) != 0 {
@@ -202,6 +202,8 @@ func CompileBlock(r *gin.Context) {
 			r.AbortWithError(422, fmt.Errorf("File uploaded should use the name `block`"))
 			return
 		}
+
+		fmt.Printf("%+v\n", files)
 
 		image, err := files[0].Open()
 		defer image.Close()

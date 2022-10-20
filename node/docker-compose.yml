@@ -4,8 +4,8 @@ services:
   server-node:
     build:
       context: .
-      dockerfile: ./docker/aws.Dockerfile
-    container_name: blocksui-node-aws
+      dockerfile: ./docker/dev.Dockerfile
+    container_name: blocksui-node-dev
     image: blocksui-node
     ports:
       - '8081:80'
@@ -14,8 +14,8 @@ services:
       - '4001:4001/udp'
     environment:
       CHAIN_NAME: polygon
-      CONTRACTS_CID: bafybeiejmrfrb35hbrjv6pwvr3pjqmwd7udhnzuwiqdkmjx6z27t3ehf3i
-      ENV: production
+      CONTRACTS_CID: bafybeigp3td44kryhury3kxqyen6wljabqbymrqoednku7cvuqjz257v6e
+      ENV: development
       LIT_VERSION: '1.1.228'
       NETWORK_NAME: mumbai
       PRIMITIVES_CID: bafybeid56uuij36vyn4tgbt3kwjdeo5vujzr2yftuvajdi4f4hld4wpkzq

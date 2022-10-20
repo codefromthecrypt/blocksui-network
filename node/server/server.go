@@ -13,12 +13,6 @@ import (
 
 var router *gin.Engine
 
-func GetAllMeta(c *config.Config) gin.HandlerFunc {
-	return func(r *gin.Context) {
-		r.Status(http.StatusOK)
-	}
-}
-
 func GetContractABIs(c *config.Config) gin.HandlerFunc {
 	return func(r *gin.Context) {
 		data := contracts.MarshalABIs(c)
@@ -43,7 +37,6 @@ func Start(c *config.Config, a *account.Account) {
 	router.GET("/primitives/:name", GetPrimitive(c))
 
 	// Blocks
-	router.GET("/blocks/meta", GetAllMeta(c))
 	router.GET("/blocks/:token",
 		IPFSConnect,
 		AuthenticateNode(c, a),
