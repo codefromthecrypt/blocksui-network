@@ -191,9 +191,9 @@ func CompileBlock(r *gin.Context) {
 	}
 
 	metadata := BlockMeta{
-		Description: form.Value["description"],
-		Name:        form.Value["name"],
-		Tags:        form.Value["tags"],
+		Description: form.Value["description"][0],
+		Name:        form.Value["name"][0],
+		Tags:        form.Value["tags"][0],
 	}
 
 	if len(form.File) != 0 {
@@ -203,8 +203,6 @@ func CompileBlock(r *gin.Context) {
 			return
 		}
 
-		fmt.Printf("%+v\n", files)
-
 		image, err := files[0].Open()
 		defer image.Close()
 		if err != nil {
@@ -212,7 +210,7 @@ func CompileBlock(r *gin.Context) {
 			return
 		}
 
-		imgCid, err := ipfs.Add(image, goIpfs.OnlyHash(true))
+		imgCid, err := ipfs.Add(image)
 		if err != nil {
 			r.AbortWithError(500, err)
 			return
